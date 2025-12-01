@@ -1,0 +1,404 @@
+// lib/core/navigation/app_router.dart
+
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../auth/auth_manager.dart';
+
+// Auth Feature Pages
+import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/register_page.dart';
+
+/// Configuración de rutas de la aplicación usando GoRouter
+/// Define todas las rutas y la lógica de navegación
+class AppRouter {
+  final AuthManager _authManager;
+
+  AppRouter(this._authManager);
+
+  /// Nombres de rutas para navegación type-safe
+  static const String splash = '/';
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String home = '/home';
+  static const String projects = '/projects';
+  static const String projectDetail = '/projects/:id';
+  static const String profile = '/profile';
+  static const String workers = '/workers';
+  static const String calendar = '/calendar';
+  static const String createWorkerProfile = '/create-worker-profile';
+
+  /// Configuración del router
+  late final GoRouter router = GoRouter(
+    initialLocation: splash,
+    debugLogDiagnostics: true,
+    redirect: _handleRedirect,
+    routes: _routes,
+  );
+
+  /// Maneja redirecciones basadas en estado de autenticación
+  Future<String?> _handleRedirect(
+    BuildContext context,
+    GoRouterState state,
+  ) async {
+    final isLoggedIn = await _authManager.isLoggedIn();
+    final isAuthRoute = state.matchedLocation == login ||
+        state.matchedLocation == register ||
+        state.matchedLocation == splash;
+
+    // Si está en splash, redirigir según estado de login
+    if (state.matchedLocation == splash) {
+      return isLoggedIn ? home : login;
+    }
+
+    // Si no está logueado y no está en ruta de auth, ir a login
+    if (!isLoggedIn && !isAuthRoute) {
+      return login;
+    }
+
+    // Si está logueado y está en ruta de auth, ir a home
+    if (isLoggedIn && isAuthRoute && state.matchedLocation != splash) {
+      return home;
+    }
+
+    return null;
+  }
+
+  /// Lista de rutas de la aplicación
+  List<RouteBase> get _routes => [
+        // Splash / Initial redirect
+        GoRoute(
+          path: splash,
+          builder: (context, state) => const _SplashPlaceholder(),
+        ),
+
+        // Auth routes - PÁGINAS REALES
+        GoRoute(
+          path: login,
+          name: 'login',
+          builder: (context, state) => const LoginPage(),
+        ),
+        GoRoute(
+          path: register,
+          name: 'register',
+          builder: (context, state) => const RegisterPage(),
+        ),
+
+        // Main app routes with bottom navigation
+        ShellRoute(
+          builder: (context, state, child) {
+            return _MainScaffold(child: child);
+          },
+          routes: [
+            GoRoute(
+              path: home,
+              name: 'home',
+              builder: (context, state) => const _HomePlaceholder(),
+            ),
+            GoRoute(
+              path: projects,
+              name: 'projects',
+              builder: (context, state) => const _ProjectsPlaceholder(),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  name: 'projectDetail',
+                  builder: (context, state) {
+                    final projectId = state.pathParameters['id'] ?? '';
+                    return _ProjectDetailPlaceholder(projectId: projectId);
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: calendar,
+              name: 'calendar',
+              builder: (context, state) => const _CalendarPlaceholder(),
+            ),
+            GoRoute(
+              path: profile,
+              name: 'profile',
+              builder: (context, state) => const _ProfilePlaceholder(),
+            ),
+          ],
+        ),
+
+        // Workers routes (outside shell)
+        GoRoute(
+          path: workers,
+          name: 'workers',
+          builder: (context, state) => const _WorkersPlaceholder(),
+        ),
+
+        // Create worker profile
+        GoRoute(
+          path: createWorkerProfile,
+          name: 'createWorkerProfile',
+          builder: (context, state) => const _CreateWorkerProfilePlaceholder(),
+        ),
+      ];
+}
+
+// ============ PLACEHOLDER WIDGETS ============
+// Login y Register ahora usan páginas reales de features/auth/
+// Los demás serán reemplazados en fases posteriores
+
+class _SplashPlaceholder extends StatelessWidget {
+  const _SplashPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+class _HomePlaceholder extends StatelessWidget {
+  const _HomePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.home, size: 64, color: Colors.blue),
+          SizedBox(height: 16),
+          Text(
+            'Home',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text('Dashboard - Placeholder'),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectsPlaceholder extends StatelessWidget {
+  const _ProjectsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.folder, size: 64, color: Colors.blue),
+          const SizedBox(height: 16),
+          const Text(
+            'Proyectos',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text('Lista de proyectos - Placeholder'),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => context.go('${AppRouter.projects}/123'),
+            child: const Text('Ver proyecto de ejemplo'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectDetailPlaceholder extends StatelessWidget {
+  final String projectId;
+
+  const _ProjectDetailPlaceholder({required this.projectId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Proyecto $projectId')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.description, size: 64, color: Colors.blue),
+            const SizedBox(height: 16),
+            Text(
+              'Detalle del Proyecto',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text('ID: $projectId'),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => context.go(AppRouter.projects),
+              child: const Text('Volver a proyectos'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarPlaceholder extends StatelessWidget {
+  const _CalendarPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.calendar_today, size: 64, color: Colors.blue),
+          SizedBox(height: 16),
+          Text(
+            'Calendario',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text('Calendario de eventos - Placeholder'),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfilePlaceholder extends StatelessWidget {
+  const _ProfilePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.person, size: 64, color: Colors.blue),
+          SizedBox(height: 16),
+          Text(
+            'Perfil',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text('Información del usuario - Placeholder'),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkersPlaceholder extends StatelessWidget {
+  const _WorkersPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Workers')),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people, size: 64, color: Colors.blue),
+            SizedBox(height: 16),
+            Text(
+              'Workers',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text('Lista de trabajadores - Placeholder'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateWorkerProfilePlaceholder extends StatelessWidget {
+  const _CreateWorkerProfilePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Crear Perfil de Worker')),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person_add, size: 64, color: Colors.blue),
+            SizedBox(height: 16),
+            Text(
+              'Crear Perfil de Worker',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text('Formulario de creación - Placeholder'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============ MAIN SCAFFOLD WITH BOTTOM NAVIGATION ============
+
+class _MainScaffold extends StatelessWidget {
+  final Widget child;
+
+  const _MainScaffold({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _calculateSelectedIndex(context),
+        onTap: (index) => _onItemTapped(index, context),
+        selectedItemColor: Theme.of(context).primaryColor,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.folder),
+            label: 'Proyectos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendario',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _calculateSelectedIndex(BuildContext context) {
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location.startsWith(AppRouter.home)) return 0;
+    if (location.startsWith(AppRouter.projects)) return 1;
+    if (location.startsWith(AppRouter.calendar)) return 2;
+    if (location.startsWith(AppRouter.profile)) return 3;
+    return 0;
+  }
+
+  void _onItemTapped(int index, BuildContext context) {
+    switch (index) {
+      case 0:
+        context.go(AppRouter.home);
+        break;
+      case 1:
+        context.go(AppRouter.projects);
+        break;
+      case 2:
+        context.go(AppRouter.calendar);
+        break;
+      case 3:
+        context.go(AppRouter.profile);
+        break;
+    }
+  }
+}

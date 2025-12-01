@@ -1,0 +1,8 @@
+// lib/features/.gitkeep
+// Este directorio contendrá las features de la aplicación
+// Se implementarán en fases posteriores:
+// - auth/
+// - projects/
+// - workers/
+// - profile/
+// - calendar/
