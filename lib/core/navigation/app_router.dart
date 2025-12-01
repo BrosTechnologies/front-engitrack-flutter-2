@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
 import '../auth/auth_manager.dart';
 
 // Auth Feature Pages
@@ -262,23 +263,73 @@ class _CalendarPlaceholder extends StatelessWidget {
   }
 }
 
-class _ProfilePlaceholder extends StatelessWidget {
+class _ProfilePlaceholder extends StatefulWidget {
   const _ProfilePlaceholder();
 
   @override
+  State<_ProfilePlaceholder> createState() => _ProfilePlaceholderState();
+}
+
+class _ProfilePlaceholderState extends State<_ProfilePlaceholder> {
+  bool _isLoggingOut = false;
+
+  Future<void> _logout() async {
+    setState(() => _isLoggingOut = true);
+    
+    try {
+      final authManager = GetIt.instance<AuthManager>();
+      await authManager.logout();
+      
+      if (mounted) {
+        context.go(AppRouter.login);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cerrar sesión: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isLoggingOut = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person, size: 64, color: Colors.blue),
-          SizedBox(height: 16),
-          Text(
+          const Icon(Icons.person, size: 64, color: Colors.blue),
+          const SizedBox(height: 16),
+          const Text(
             'Perfil',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 8),
-          Text('Información del usuario - Placeholder'),
+          const SizedBox(height: 8),
+          const Text('Información del usuario - Placeholder'),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: _isLoggingOut ? null : _logout,
+            icon: _isLoggingOut
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.logout),
+            label: Text(_isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
         ],
       ),
     );

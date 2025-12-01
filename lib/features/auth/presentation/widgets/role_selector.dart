@@ -43,6 +43,12 @@ class RoleSelector extends StatelessWidget {
       description: 'Trabaja en proyectos asignados',
       icon: Icons.engineering,
     ),
+    RoleOption(
+      value: 'USER',
+      displayName: 'Usuario',
+      description: 'Usuario general del sistema',
+      icon: Icons.person,
+    ),
   ];
 
   @override
