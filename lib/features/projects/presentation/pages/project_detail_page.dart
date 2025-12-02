@@ -250,16 +250,16 @@ class _ProjectDetailContent extends StatelessWidget {
     BuildContext context,
     String action,
     ProjectDetailLoaded state,
-  ) {
+  ) async {
     switch (action) {
       case 'edit':
-        // TODO: Implementar pantalla de edición de proyecto
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Edición de proyecto - Próximamente'),
-            duration: Duration(seconds: 2),
-          ),
+        final result = await context.push(
+          AppRouter.editProject,
+          extra: state.project,
         );
+        if (result == true && context.mounted) {
+          context.read<ProjectDetailBloc>().add(const RefreshProject());
+        }
         break;
       case 'complete':
         _showCompleteConfirmation(context);

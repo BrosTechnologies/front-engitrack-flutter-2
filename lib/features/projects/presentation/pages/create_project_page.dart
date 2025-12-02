@@ -258,6 +258,9 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
     required ValueChanged<DateTime?> onChanged,
     String? errorText,
   }) {
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final isOverdue = value != null && value.isBefore(today);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -272,12 +275,26 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
         const SizedBox(height: 8),
         InkWell(
           onTap: () async {
+            // Si la fecha actual es anterior a hoy (proyecto vencido),
+            // usar today como initialDate para evitar el error
+            final DateTime initialDate;
+            if (value == null) {
+              initialDate = today.add(const Duration(days: 7));
+            } else if (value.isBefore(today)) {
+              // Proyecto vencido: usar hoy como fecha inicial
+              initialDate = today;
+            } else {
+              initialDate = value;
+            }
+            
             final date = await showDatePicker(
               context: context,
-              initialDate: value ?? DateTime.now().add(const Duration(days: 7)),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-              helpText: 'Selecciona fecha límite',
+              initialDate: initialDate,
+              firstDate: today,
+              lastDate: today.add(const Duration(days: 365 * 2)),
+              helpText: isOverdue 
+                  ? 'Fecha vencida. Selecciona nueva fecha'
+                  : 'Selecciona fecha límite',
               cancelText: 'Cancelar',
               confirmText: 'Seleccionar',
             );
@@ -290,29 +307,44 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: isOverdue ? Colors.red.shade50 : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
               border: errorText != null 
                   ? Border.all(color: Colors.red, width: 1)
-                  : null,
+                  : isOverdue
+                      ? Border.all(color: Colors.red.shade200, width: 1)
+                      : null,
             ),
             child: Row(
               children: [
                 Icon(
-                  Icons.calendar_today_outlined,
+                  isOverdue ? Icons.warning_amber_rounded : Icons.calendar_today_outlined,
                   size: 20,
-                  color: errorText != null ? Colors.red : Colors.grey.shade500,
+                  color: isOverdue ? Colors.red : (errorText != null ? Colors.red : Colors.grey.shade500),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    value != null
-                        ? DateFormat('dd/MM/yyyy').format(value)
-                        : 'Seleccionar fecha límite',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: value != null ? Colors.black : Colors.grey.shade400,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        value != null
+                            ? DateFormat('dd/MM/yyyy').format(value)
+                            : 'Seleccionar fecha límite',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isOverdue ? Colors.red : (value != null ? Colors.black : Colors.grey.shade400),
+                        ),
+                      ),
+                      if (isOverdue)
+                        Text(
+                          'Fecha vencida - toca para actualizar',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.red.shade600,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down),
