@@ -15,6 +15,11 @@ import '../../features/projects/presentation/pages/project_detail_page.dart';
 import '../../features/projects/presentation/pages/create_project_page.dart';
 import '../../features/projects/domain/entities/project.dart';
 
+// Workers Feature Pages
+import '../../features/workers/presentation/pages/workers_selector_page.dart';
+import '../../features/workers/presentation/pages/worker_form_page.dart';
+import '../../features/workers/presentation/pages/worker_assignments_page.dart';
+
 /// Configuración de rutas de la aplicación usando GoRouter
 /// Define todas las rutas y la lógica de navegación
 class AppRouter {
@@ -33,8 +38,12 @@ class AppRouter {
   static const String editProject = '/projects/edit';
   static const String profile = '/profile';
   static const String workers = '/workers';
+  static const String workerForm = '/worker-form';
+  static const String workerEdit = '/worker-form/:id';
+  static const String workerAssignments = '/worker-assignments';
   static const String calendar = '/calendar';
   static const String createWorkerProfile = '/create-worker-profile';
+  static const String projectAddWorker = '/projects/:id/add-worker';
 
   /// Configuración del router
   late final GoRouter router = GoRouter(
@@ -148,7 +157,54 @@ class AppRouter {
         GoRoute(
           path: workers,
           name: 'workers',
-          builder: (context, state) => const _WorkersPlaceholder(),
+          builder: (context, state) => const WorkersSelectorPage(),
+        ),
+
+        // Worker form - create
+        GoRoute(
+          path: workerForm,
+          name: 'workerForm',
+          builder: (context, state) => const WorkerFormPage(),
+        ),
+
+        // Worker form - edit
+        GoRoute(
+          path: '/worker-form/:id',
+          name: 'workerEdit',
+          builder: (context, state) {
+            final workerId = state.pathParameters['id'];
+            return WorkerFormPage(workerId: workerId);
+          },
+        ),
+
+        // Worker assignments
+        GoRoute(
+          path: workerAssignments,
+          name: 'workerAssignments',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, String>?;
+            final workerId = extra?['workerId'] ?? '';
+            final workerName = extra?['workerName'];
+            return WorkerAssignmentsPage(
+              workerId: workerId,
+              workerName: workerName,
+            );
+          },
+        ),
+
+        // Add worker to project
+        GoRoute(
+          path: '/projects/:id/add-worker',
+          name: 'projectAddWorker',
+          builder: (context, state) {
+            final projectId = state.pathParameters['id'] ?? '';
+            final extra = state.extra as Map<String, dynamic>?;
+            return WorkersSelectorPage(
+              projectId: projectId,
+              projectName: extra?['projectName'] as String?,
+              projectEndDate: extra?['projectEndDate'] as DateTime?,
+            );
+          },
         ),
 
         // Create worker profile
@@ -291,32 +347,6 @@ class _ProfilePlaceholderState extends State<_ProfilePlaceholder> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _WorkersPlaceholder extends StatelessWidget {
-  const _WorkersPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Workers')),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.people, size: 64, color: Colors.blue),
-            SizedBox(height: 16),
-            Text(
-              'Workers',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text('Lista de trabajadores - Placeholder'),
-          ],
-        ),
       ),
     );
   }
