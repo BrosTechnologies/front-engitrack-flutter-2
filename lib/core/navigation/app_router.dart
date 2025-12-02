@@ -18,6 +18,7 @@ import '../../features/projects/domain/entities/project.dart';
 // Workers Feature Pages
 import '../../features/workers/presentation/pages/workers_selector_page.dart';
 import '../../features/workers/presentation/pages/worker_form_page.dart';
+import '../../features/workers/presentation/pages/worker_detail_page.dart';
 import '../../features/workers/presentation/pages/worker_assignments_page.dart';
 
 // Profile Feature Pages
@@ -240,13 +241,13 @@ class AppRouter {
           },
         ),
 
-        // Worker detail (view/edit worker)
+        // Worker detail (view worker profile - read only)
         GoRoute(
           path: '/workers/:id',
           name: 'workerDetail',
           builder: (context, state) {
-            final workerId = state.pathParameters['id'];
-            return WorkerFormPage(workerId: workerId);
+            final workerId = state.pathParameters['id'] ?? '';
+            return WorkerDetailPage(workerId: workerId);
           },
         ),
       ];

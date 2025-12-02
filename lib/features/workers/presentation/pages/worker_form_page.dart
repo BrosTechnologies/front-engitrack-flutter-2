@@ -267,7 +267,7 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
                                   if (value == null || value.trim().isEmpty) {
                                     return 'El teléfono es requerido';
                                   }
-                                  if (value.replaceAll(RegExp(r'\D'), '').length < 9) {
+                                  if (value.replaceAll(RegExp(r'\D'), '').length < 7) {
                                     return 'Teléfono inválido';
                                   }
                                   return null;

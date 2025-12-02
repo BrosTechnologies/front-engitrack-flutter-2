@@ -57,6 +57,7 @@ class UserProfile extends Equatable {
   }
 
   /// Copia la entidad con valores modificados
+  /// Si [clearWorkerId] es true, establece workerId a null
   UserProfile copyWith({
     String? id,
     String? email,
@@ -64,6 +65,7 @@ class UserProfile extends Equatable {
     String? phone,
     String? role,
     String? workerId,
+    bool clearWorkerId = false,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -71,7 +73,7 @@ class UserProfile extends Equatable {
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
       role: role ?? this.role,
-      workerId: workerId ?? this.workerId,
+      workerId: clearWorkerId ? null : (workerId ?? this.workerId),
     );
   }
 

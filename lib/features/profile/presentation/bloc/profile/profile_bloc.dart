@@ -158,8 +158,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         // Limpiar workerId del storage
         await _authManager.clearWorkerId();
 
-        // Actualizar perfil sin workerId
-        final updatedProfile = currentState.profile.copyWith(workerId: null);
+        // Actualizar perfil sin workerId (usar clearWorkerId para establecer a null)
+        final updatedProfile = currentState.profile.copyWith(clearWorkerId: true);
         emit(ProfileLoaded(
           profile: updatedProfile,
           stats: currentState.stats,
