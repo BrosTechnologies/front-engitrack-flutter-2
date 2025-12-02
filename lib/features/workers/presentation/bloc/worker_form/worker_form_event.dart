@@ -11,8 +11,21 @@ abstract class WorkerFormEvent extends Equatable {
 }
 
 /// Evento para inicializar el formulario en modo crear
+/// Puede recibir datos precargados del perfil del usuario
 class InitCreateWorkerEvent extends WorkerFormEvent {
-  const InitCreateWorkerEvent();
+  /// Nombre completo precargado (del perfil de usuario)
+  final String? prefilledFullName;
+  
+  /// Teléfono precargado (del perfil de usuario)
+  final String? prefilledPhone;
+
+  const InitCreateWorkerEvent({
+    this.prefilledFullName,
+    this.prefilledPhone,
+  });
+
+  @override
+  List<Object?> get props => [prefilledFullName, prefilledPhone];
 }
 
 /// Evento para inicializar el formulario en modo editar

@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../domain/repositories/worker_repository.dart';
 import '../bloc/worker_form/worker_form_bloc.dart';
 import '../bloc/worker_form/worker_form_event.dart';
 import '../bloc/worker_form/worker_form_state.dart';
@@ -15,21 +14,33 @@ import '../bloc/worker_form/worker_form_state.dart';
 class WorkerFormPage extends StatelessWidget {
   /// ID del worker a editar (null si es nuevo)
   final String? workerId;
+  
+  /// Nombre completo precargado (para creación desde perfil)
+  final String? prefilledFullName;
+  
+  /// Teléfono precargado (para creación desde perfil)
+  final String? prefilledPhone;
 
   const WorkerFormPage({
     super.key,
     this.workerId,
+    this.prefilledFullName,
+    this.prefilledPhone,
   });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) {
-        final bloc = WorkerFormBloc(GetIt.instance<WorkerRepository>());
+        // Usar GetIt para obtener el bloc ya configurado con sus dependencias
+        final bloc = GetIt.instance<WorkerFormBloc>();
         if (workerId != null) {
           bloc.add(InitEditWorkerEvent(workerId!));
         } else {
-          bloc.add(const InitCreateWorkerEvent());
+          bloc.add(InitCreateWorkerEvent(
+            prefilledFullName: prefilledFullName,
+            prefilledPhone: prefilledPhone,
+          ));
         }
         return bloc;
       },
@@ -57,6 +68,9 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
 
   bool get isEditing => widget.workerId != null;
   bool _isInitialized = false;
+  
+  /// Indica si los campos nombre y teléfono vienen precargados del perfil (solo lectura)
+  bool _hasPrefilledProfileData = false;
 
   @override
   void dispose() {
@@ -71,21 +85,35 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
   void _initializeControllers(WorkerFormState state) {
     if (_isInitialized) return;
     
-    _fullNameController.text = state.fullName;
-    _documentNumberController.text = state.documentNumber;
-    _phoneController.text = state.phone;
-    _positionController.text = state.position;
-    if (state.hourlyRate > 0) {
-      _hourlyRateController.text = state.hourlyRate.toStringAsFixed(2);
+    // Solo inicializar si hay datos que mostrar
+    if (state.fullName.isNotEmpty || state.phone.isNotEmpty || state.isEditing) {
+      _fullNameController.text = state.fullName;
+      _documentNumberController.text = state.documentNumber;
+      _phoneController.text = state.phone;
+      _positionController.text = state.position;
+      if (state.hourlyRate > 0) {
+        _hourlyRateController.text = state.hourlyRate.toStringAsFixed(2);
+      }
+      
+      // Marcar si tiene datos precargados del perfil (no edición de worker existente)
+      // Esto hará que nombre y teléfono sean solo lectura
+      if (!state.isEditing && (state.fullName.isNotEmpty || state.phone.isNotEmpty)) {
+        _hasPrefilledProfileData = true;
+      }
+      
+      _isInitialized = true;
     }
-    
-    _isInitialized = true;
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<WorkerFormBloc, WorkerFormState>(
       listener: (context, state) {
+        // Inicializar controladores cuando llegan los datos precargados
+        if (!_isInitialized && !state.isLoading) {
+          _initializeControllers(state);
+        }
+        
         if (state.isSaved) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -108,8 +136,8 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
         }
       },
       builder: (context, state) {
-        // Inicializar controladores cuando se cargan los datos
-        if (state.isEditing && !state.isLoading && !_isInitialized) {
+        // También intentar inicializar en el builder por si el listener no se disparó
+        if (!state.isLoading && !_isInitialized) {
           _initializeControllers(state);
         }
 
@@ -137,11 +165,47 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Nombre completo
+                              // Nota informativa si hay datos precargados
+                              if (_hasPrefilledProfileData) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.primary.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: AppColors.primary,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'El nombre y teléfono se tomaron de tu perfil. '
+                                          'Para modificarlos, edita tu perfil de usuario.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                              
+                              // Nombre completo (solo lectura si viene del perfil)
                               _buildTextField(
                                 controller: _fullNameController,
                                 label: 'Nombre Completo *',
                                 hint: 'Ingresa el nombre completo...',
+                                readOnly: _hasPrefilledProfileData,
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
                                     return 'El nombre es requerido';
@@ -186,11 +250,12 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Teléfono
+                              // Teléfono (solo lectura si viene del perfil)
                               _buildTextField(
                                 controller: _phoneController,
                                 label: 'Teléfono *',
                                 hint: '999 999 999',
+                                readOnly: _hasPrefilledProfileData,
                                 keyboardType: TextInputType.phone,
                                 inputFormatters: [
                                   FilteringTextInputFormatter.allow(
@@ -202,7 +267,7 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
                                   if (value == null || value.trim().isEmpty) {
                                     return 'El teléfono es requerido';
                                   }
-                                  if (value.replaceAll(RegExp(r'\D'), '').length < 9) {
+                                  if (value.replaceAll(RegExp(r'\D'), '').length < 7) {
                                     return 'Teléfono inválido';
                                   }
                                   return null;
@@ -288,6 +353,7 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
     String? prefixText,
     String? Function(String?)? validator,
     void Function(String)? onChanged,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,13 +373,15 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           validator: validator,
-          onChanged: onChanged,
+          onChanged: readOnly ? null : onChanged,
+          readOnly: readOnly,
+          enabled: !readOnly,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400),
             prefixText: prefixText,
             filled: true,
-            fillColor: Colors.grey.shade100,
+            fillColor: readOnly ? Colors.grey.shade200 : Colors.grey.shade100,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -322,6 +390,9 @@ class _WorkerFormContentState extends State<_WorkerFormContent> {
               horizontal: 16,
               vertical: 14,
             ),
+            suffixIcon: readOnly
+                ? Icon(Icons.lock_outline, color: Colors.grey.shade500, size: 20)
+                : null,
           ),
         ),
       ],

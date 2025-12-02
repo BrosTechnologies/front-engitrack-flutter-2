@@ -1,6 +1,7 @@
 // lib/features/workers/presentation/bloc/worker_form/worker_form_bloc.dart
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../core/auth/auth_manager.dart';
 import '../../../domain/repositories/worker_repository.dart';
 import 'worker_form_event.dart';
 import 'worker_form_state.dart';
@@ -8,8 +9,9 @@ import 'worker_form_state.dart';
 /// Bloc para manejar el formulario de worker
 class WorkerFormBloc extends Bloc<WorkerFormEvent, WorkerFormState> {
   final WorkerRepository _workerRepository;
+  final AuthManager _authManager;
 
-  WorkerFormBloc(this._workerRepository) : super(WorkerFormState.initial()) {
+  WorkerFormBloc(this._workerRepository, this._authManager) : super(WorkerFormState.initial()) {
     on<InitCreateWorkerEvent>(_onInitCreate);
     on<InitEditWorkerEvent>(_onInitEdit);
     on<UpdateFullNameEvent>(_onUpdateFullName);
@@ -24,7 +26,15 @@ class WorkerFormBloc extends Bloc<WorkerFormEvent, WorkerFormState> {
     InitCreateWorkerEvent event,
     Emitter<WorkerFormState> emit,
   ) {
-    emit(WorkerFormState.initial());
+    // Si hay datos precargados, usarlos
+    if (event.prefilledFullName != null || event.prefilledPhone != null) {
+      emit(WorkerFormState.initial().copyWith(
+        fullName: event.prefilledFullName ?? '',
+        phone: event.prefilledPhone ?? '',
+      ));
+    } else {
+      emit(WorkerFormState.initial());
+    }
   }
 
   Future<void> _onInitEdit(
@@ -135,17 +145,25 @@ class WorkerFormBloc extends Bloc<WorkerFormEvent, WorkerFormState> {
         ),
       );
 
-      result.fold(
-        (failure) => emit(state.copyWith(
+      if (result.isLeft()) {
+        final failure = result.fold((f) => f, (_) => null)!;
+        emit(state.copyWith(
           isSaving: false,
           errorMessage: failure.message,
-        )),
-        (worker) => emit(state.copyWith(
+        ));
+      } else {
+        final worker = result.fold((_) => null, (w) => w)!;
+        
+        // Guardar el workerId en AuthManager para vincularlo al usuario
+        // IMPORTANTE: Esperar a que se guarde antes de emitir el estado de éxito
+        await _authManager.saveWorkerId(worker.id);
+        
+        emit(state.copyWith(
           isSaving: false,
           isSaved: true,
           savedWorker: worker,
-        )),
-      );
+        ));
+      }
     }
   }
 }
