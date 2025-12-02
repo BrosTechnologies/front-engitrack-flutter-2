@@ -53,7 +53,15 @@ class _ProjectsPageContentState extends State<_ProjectsPageContent> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () => context.push(AppRouter.createProject),
+            onPressed: () async {
+              final result = await context.push(AppRouter.createProject);
+              if (result == true && context.mounted) {
+                // Refresh después de crear proyecto
+                context.read<ProjectsListBloc>().add(const RefreshProjects());
+                // Reset filtro a "Todos"
+                setState(() => _selectedStatus = null);
+              }
+            },
             icon: const Icon(Icons.add),
             tooltip: 'Nuevo proyecto',
           ),
@@ -84,7 +92,13 @@ class _ProjectsPageContentState extends State<_ProjectsPageContent> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(AppRouter.createProject),
+        onPressed: () async {
+          final result = await context.push(AppRouter.createProject);
+          if (result == true && context.mounted) {
+            context.read<ProjectsListBloc>().add(const RefreshProjects());
+            setState(() => _selectedStatus = null);
+          }
+        },
         backgroundColor: const Color(0xFF007AFF),
         child: const Icon(Icons.add, color: Colors.white),
       ),

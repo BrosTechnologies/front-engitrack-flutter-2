@@ -50,6 +50,7 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
   DateTime? _endDate;
   Priority _priority = Priority.medium;
   final List<_TaskInput> _tasks = [];
+  String? _dateError;
 
   bool get isEditing => widget.project != null;
 
@@ -149,11 +150,20 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Fecha límite
-                      _buildDateField(
-                        label: 'Fecha Límite',
+                      // Fecha límite (obligatoria)
+                      _buildDateFieldRequired(
+                        label: 'Fecha Límite *',
                         value: _endDate,
-                        onChanged: (date) => setState(() => _endDate = date),
+                        onChanged: (date) => setState(() {
+                          _endDate = date;
+                          // Actualizar tareas que tengan fecha mayor a la nueva fecha límite
+                          for (var task in _tasks) {
+                            if (task.dueDate != null && date != null && task.dueDate!.isAfter(date)) {
+                              task.dueDate = date;
+                            }
+                          }
+                        }),
+                        errorText: _dateError,
                       ),
                       const SizedBox(height: 16),
 
@@ -242,10 +252,11 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
     );
   }
 
-  Widget _buildDateField({
+  Widget _buildDateFieldRequired({
     required String label,
     required DateTime? value,
     required ValueChanged<DateTime?> onChanged,
+    String? errorText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,11 +274,17 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
           onTap: () async {
             final date = await showDatePicker(
               context: context,
-              initialDate: value ?? DateTime.now().add(const Duration(days: 30)),
+              initialDate: value ?? DateTime.now().add(const Duration(days: 7)),
               firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+              helpText: 'Selecciona fecha límite',
+              cancelText: 'Cancelar',
+              confirmText: 'Seleccionar',
             );
-            onChanged(date);
+            if (date != null) {
+              setState(() => _dateError = null);
+              onChanged(date);
+            }
           },
           borderRadius: BorderRadius.circular(12),
           child: Container(
@@ -275,29 +292,45 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
+              border: errorText != null 
+                  ? Border.all(color: Colors.red, width: 1)
+                  : null,
             ),
             child: Row(
               children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 20,
+                  color: errorText != null ? Colors.red : Colors.grey.shade500,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     value != null
                         ? DateFormat('dd/MM/yyyy').format(value)
-                        : 'Seleccionar fecha',
+                        : 'Seleccionar fecha límite',
                     style: TextStyle(
                       fontSize: 16,
                       color: value != null ? Colors.black : Colors.grey.shade400,
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 20,
-                  color: Colors.grey.shade500,
-                ),
+                const Icon(Icons.arrow_drop_down),
               ],
             ),
           ),
         ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 12),
+            child: Text(
+              errorText,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade700,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -388,21 +421,45 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         if (_tasks.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                'Sin tareas. Agrega tareas para organizar tu proyecto.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey.shade500,
+          InkWell(
+            onTap: _showAddTaskSheet,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.shade300,
+                  style: BorderStyle.solid,
                 ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.add_task,
+                    size: 40,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Agregar primera tarea',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Toca para agregar tareas al proyecto',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade400,
+                    ),
+                  ),
+                ],
               ),
             ),
           )
@@ -423,78 +480,309 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
   Widget _buildTaskItem(int index) {
     final task = _tasks[index];
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.task_alt,
+              color: Color(0xFF007AFF),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextFormField(
-                  initialValue: task.title,
-                  decoration: const InputDecoration(
-                    hintText: 'Título de la tarea',
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+                Text(
+                  task.title.isEmpty ? 'Tarea ${index + 1}' : task.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
-                  onChanged: (value) => task.title = value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: task.dueDate ??
-                          DateTime.now().add(const Duration(days: 7)),
-                      firstDate: DateTime.now(),
-                      lastDate:
-                          DateTime.now().add(const Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      setState(() => task.dueDate = date);
-                    }
-                  },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: Colors.grey.shade500,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 14,
+                      color: task.dueDate != null 
+                          ? const Color(0xFF007AFF)
+                          : Colors.grey.shade400,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      task.dueDate != null
+                          ? DateFormat('dd MMM yyyy', 'es_ES').format(task.dueDate!)
+                          : 'Sin fecha límite',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: task.dueDate != null 
+                            ? const Color(0xFF007AFF)
+                            : Colors.grey.shade500,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        task.dueDate != null
-                            ? DateFormat('dd/MM/yyyy').format(task.dueDate!)
-                            : 'Sin fecha',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
+            icon: Icon(Icons.edit_outlined, color: Colors.grey.shade400, size: 20),
+            onPressed: () => _showEditTaskSheet(index),
+            tooltip: 'Editar',
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 20),
             onPressed: () => _removeTask(index),
+            tooltip: 'Eliminar',
           ),
         ],
       ),
     );
   }
 
+  void _showAddTaskSheet() {
+    if (_endDate == null) {
+      setState(() => _dateError = 'Primero selecciona la fecha límite del proyecto');
+      return;
+    }
+    _showTaskSheet(null);
+  }
+
+  void _showEditTaskSheet(int index) {
+    _showTaskSheet(index);
+  }
+
+  void _showTaskSheet(int? editIndex) {
+    final isEditing = editIndex != null;
+    final task = isEditing ? _tasks[editIndex] : null;
+    
+    final formKey = GlobalKey<FormState>();
+    final titleController = TextEditingController(text: task?.title ?? '');
+    DateTime? selectedDate = task?.dueDate;
+    String? dateError;
+    
+    final today = DateTime.now();
+    final maxDate = _endDate!;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEditing ? 'Editar Tarea' : 'Nueva Tarea',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Título
+                  TextFormField(
+                    controller: titleController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: 'Título de la tarea *',
+                      hintText: 'Ingresa el título...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El título es requerido';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Fecha límite (obligatoria)
+                  InkWell(
+                    onTap: () async {
+                      final initialDate = selectedDate ?? 
+                          (today.isBefore(maxDate) ? today.add(const Duration(days: 1)) : today);
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: initialDate.isAfter(maxDate) ? maxDate : initialDate,
+                        firstDate: today,
+                        lastDate: maxDate,
+                        helpText: 'Fecha límite de la tarea',
+                        cancelText: 'Cancelar',
+                        confirmText: 'Seleccionar',
+                      );
+                      if (date != null) {
+                        setModalState(() {
+                          selectedDate = date;
+                          dateError = null;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: dateError != null ? Colors.red : Colors.grey.shade300,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            color: dateError != null ? Colors.red : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              selectedDate != null
+                                  ? DateFormat('dd/MM/yyyy').format(selectedDate!)
+                                  : 'Seleccionar fecha límite *',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: selectedDate != null
+                                    ? Colors.black
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (dateError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, left: 12),
+                      child: Text(
+                        dateError!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ),
+                  
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    child: Text(
+                      'La fecha debe ser anterior o igual a: ${DateFormat('dd/MM/yyyy').format(maxDate)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Botón guardar
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final isFormValid = formKey.currentState!.validate();
+                        
+                        if (selectedDate == null) {
+                          setModalState(() {
+                            dateError = 'La fecha límite es obligatoria';
+                          });
+                          return;
+                        }
+                        
+                        if (isFormValid) {
+                          setState(() {
+                            if (isEditing) {
+                              _tasks[editIndex].title = titleController.text.trim();
+                              _tasks[editIndex].dueDate = selectedDate;
+                            } else {
+                              _tasks.add(_TaskInput(
+                                title: titleController.text.trim(),
+                                dueDate: selectedDate,
+                              ));
+                            }
+                          });
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF007AFF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        isEditing ? 'Guardar Cambios' : 'Agregar Tarea',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _addTask() {
-    setState(() {
-      _tasks.add(_TaskInput());
-    });
+    _showAddTaskSheet();
   }
 
   void _removeTask(int index) {
@@ -561,6 +849,12 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
   void _onSave() {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validar fecha límite obligatoria
+    if (_endDate == null) {
+      setState(() => _dateError = 'La fecha límite es obligatoria');
+      return;
+    }
+
     final budget = _budgetController.text.isNotEmpty
         ? double.tryParse(_budgetController.text)
         : null;
@@ -577,9 +871,9 @@ class _CreateProjectContentState extends State<_CreateProjectContent> {
             priority: _priority,
           ));
     } else {
-      // Filtrar tareas vacías
+      // Filtrar tareas vacías y con fecha válida
       final validTasks = _tasks
-          .where((t) => t.title.trim().isNotEmpty)
+          .where((t) => t.title.trim().isNotEmpty && t.dueDate != null)
           .map((t) => CreateTaskParams(
                 title: t.title.trim(),
                 dueDate: t.dueDate,
@@ -606,11 +900,8 @@ class _TaskInput {
   String title;
   DateTime? dueDate;
 
-  // ignore: unused_element
   _TaskInput({
-    // ignore: unused_element_parameter
     this.title = '',
-    // ignore: unused_element_parameter
     this.dueDate,
   });
 }

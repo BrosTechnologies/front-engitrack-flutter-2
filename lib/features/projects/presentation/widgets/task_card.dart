@@ -35,9 +35,16 @@ class TaskCard extends StatelessWidget {
           ? DismissDirection.endToStart
           : DismissDirection.none,
       confirmDismiss: (direction) async {
-        return await _showDeleteConfirmation(context);
+        final confirmed = await _showDeleteConfirmation(context);
+        if (confirmed && onDelete != null) {
+          // Llamamos onDelete aquí y retornamos false para evitar
+          // el error "A dismissed Dismissible widget is still part of the tree"
+          // El Bloc se encargará de remover el widget del árbol
+          onDelete!();
+        }
+        // Siempre retornamos false porque el Bloc maneja la eliminación
+        return false;
       },
-      onDismissed: (_) => onDelete?.call(),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),

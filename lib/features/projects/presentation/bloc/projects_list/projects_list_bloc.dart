@@ -11,6 +11,9 @@ import 'projects_list_state.dart';
 class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
   final ProjectRepository _projectRepository;
 
+  /// Lista completa de proyectos (cache)
+  List<Project> _allProjects = [];
+
   ProjectsListBloc(this._projectRepository) : super(const ProjectsListInitial()) {
     on<LoadProjects>(_onLoadProjects);
     on<RefreshProjects>(_onRefreshProjects);
@@ -31,6 +34,7 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
     result.fold(
       (failure) => emit(ProjectsListError(failure.message)),
       (projects) {
+        _allProjects = projects;
         if (projects.isEmpty) {
           emit(const ProjectsListEmpty());
         } else {
@@ -60,6 +64,7 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
         }
       },
       (projects) {
+        _allProjects = projects;
         if (projects.isEmpty) {
           emit(const ProjectsListEmpty());
         } else {
@@ -89,35 +94,41 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
     SearchProjects event,
     Emitter<ProjectsListState> emit,
   ) async {
-    final currentState = state;
-    if (currentState is! ProjectsListLoaded) return;
+    // Usar cache si el estado actual es Empty con filtros
+    final projects = _allProjects.isNotEmpty ? _allProjects : 
+        (state is ProjectsListLoaded ? (state as ProjectsListLoaded).projects : <Project>[]);
+    
+    if (projects.isEmpty) return;
 
     final query = event.query.trim().toLowerCase();
+    final currentStatusFilter = state is ProjectsListLoaded 
+        ? (state as ProjectsListLoaded).currentStatusFilter 
+        : null;
     
     if (query.isEmpty) {
       // Limpiar búsqueda, mantener otros filtros
-      final filtered = _applyFilters(
-        currentState.projects,
-        currentState.currentStatusFilter,
-        null,
-      );
-      emit(currentState.copyWith(
-        filteredProjects: filtered,
-        clearSearchQuery: true,
-      ));
+      final filtered = _applyFilters(projects, currentStatusFilter, null);
+      
+      if (filtered.isEmpty && currentStatusFilter != null) {
+        emit(ProjectsListEmpty(hasFilters: true));
+      } else {
+        emit(ProjectsListLoaded(
+          projects: projects,
+          filteredProjects: filtered,
+          currentStatusFilter: currentStatusFilter,
+        ));
+      }
     } else {
       // Aplicar búsqueda
-      final filtered = _applyFilters(
-        currentState.projects,
-        currentState.currentStatusFilter,
-        query,
-      );
+      final filtered = _applyFilters(projects, currentStatusFilter, query);
       
       if (filtered.isEmpty) {
         emit(const ProjectsListEmpty(hasFilters: true));
       } else {
-        emit(currentState.copyWith(
+        emit(ProjectsListLoaded(
+          projects: projects,
           filteredProjects: filtered,
+          currentStatusFilter: currentStatusFilter,
           currentSearchQuery: query,
         ));
       }
@@ -129,22 +140,30 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
     FilterByStatus event,
     Emitter<ProjectsListState> emit,
   ) async {
-    final currentState = state;
-    if (currentState is! ProjectsListLoaded) return;
+    // Usar cache si el estado actual es Empty con filtros
+    final projects = _allProjects.isNotEmpty ? _allProjects : 
+        (state is ProjectsListLoaded ? (state as ProjectsListLoaded).projects : <Project>[]);
+    
+    if (projects.isEmpty) {
+      // Si no hay proyectos, recargar
+      add(const LoadProjects());
+      return;
+    }
 
-    final filtered = _applyFilters(
-      currentState.projects,
-      event.status,
-      currentState.currentSearchQuery,
-    );
+    final currentSearchQuery = state is ProjectsListLoaded 
+        ? (state as ProjectsListLoaded).currentSearchQuery 
+        : null;
+
+    final filtered = _applyFilters(projects, event.status, currentSearchQuery);
 
     if (filtered.isEmpty) {
       emit(const ProjectsListEmpty(hasFilters: true));
     } else {
-      emit(currentState.copyWith(
+      emit(ProjectsListLoaded(
+        projects: projects,
         filteredProjects: filtered,
         currentStatusFilter: event.status,
-        clearStatusFilter: event.status == null,
+        currentSearchQuery: currentSearchQuery,
       ));
     }
   }
@@ -154,11 +173,9 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
     ClearFilters event,
     Emitter<ProjectsListState> emit,
   ) async {
-    final currentState = state;
-    
-    if (currentState is ProjectsListLoaded) {
-      emit(ProjectsListLoaded(projects: currentState.projects));
-    } else if (currentState is ProjectsListEmpty) {
+    if (_allProjects.isNotEmpty) {
+      emit(ProjectsListLoaded(projects: _allProjects));
+    } else {
       // Recargar proyectos
       add(const LoadProjects());
     }

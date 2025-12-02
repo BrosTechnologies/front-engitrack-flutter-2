@@ -217,7 +217,7 @@ class _ProjectDetailContent extends StatelessWidget {
                     isProcessing: state.isProcessing,
                     onTaskTap: (task) => _onTaskTap(context, task),
                     onTaskDelete: (task) => _onTaskDelete(context, task),
-                    onAddTask: () => _showAddTaskDialog(context),
+                    onAddTask: () => _showAddTaskDialog(context, project.endDate),
                   ),
 
                   const SizedBox(height: 80), // Espacio para FAB
@@ -239,7 +239,7 @@ class _ProjectDetailContent extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddTaskDialog(context),
+        onPressed: () => _showAddTaskDialog(context, project.endDate),
         backgroundColor: const Color(0xFF007AFF),
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -284,17 +284,31 @@ class _ProjectDetailContent extends StatelessWidget {
     context.read<ProjectDetailBloc>().add(DeleteTask(task.taskId));
   }
 
-  void _showAddTaskDialog(BuildContext context) {
+  void _showAddTaskDialog(BuildContext context, DateTime? projectEndDate) {
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     DateTime? selectedDate;
+    String? dateError;
+    final bloc = context.read<ProjectDetailBloc>();
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    
+    // Si el proyecto tiene fecha y está en el futuro, usar esa fecha como máximo
+    // Si el proyecto tiene fecha pero ya pasó, permitir hasta 1 año desde hoy
+    // Si no tiene fecha, permitir hasta 1 año desde hoy
+    final DateTime maxDate;
+    final bool hasProjectEndDate = projectEndDate != null && projectEndDate.isAfter(today);
+    if (hasProjectEndDate) {
+      maxDate = projectEndDate;
+    } else {
+      maxDate = today.add(const Duration(days: 365));
+    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (modalContext) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
+        builder: (sheetContext, setModalState) => Container(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
@@ -349,37 +363,49 @@ class _ProjectDetailContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Fecha límite
+                  // Fecha límite (obligatoria)
                   InkWell(
                     onTap: () async {
+                      final initialDate = selectedDate ?? 
+                          (today.isBefore(maxDate) ? today.add(const Duration(days: 1)) : today);
                       final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now().add(const Duration(days: 7)),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        context: sheetContext,
+                        initialDate: initialDate.isAfter(maxDate) ? maxDate : initialDate,
+                        firstDate: today,
+                        lastDate: maxDate,
+                        helpText: hasProjectEndDate 
+                            ? 'Máximo: ${maxDate.day}/${maxDate.month}/${maxDate.year}'
+                            : 'Selecciona fecha límite',
+                        cancelText: 'Cancelar',
+                        confirmText: 'Seleccionar',
                       );
                       if (date != null) {
-                        setModalState(() => selectedDate = date);
+                        setModalState(() {
+                          selectedDate = date;
+                          dateError = null;
+                        });
                       }
                     },
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: dateError != null ? Colors.red : Colors.grey.shade300,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.calendar_today_outlined,
-                            color: Colors.grey.shade600,
+                            color: dateError != null ? Colors.red : Colors.grey.shade600,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               selectedDate != null
                                   ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
-                                  : 'Fecha límite (opcional)',
+                                  : 'Seleccionar fecha límite *',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: selectedDate != null
@@ -388,17 +414,33 @@ class _ProjectDetailContent extends StatelessWidget {
                               ),
                             ),
                           ),
-                          if (selectedDate != null)
-                            IconButton(
-                              icon: const Icon(Icons.clear, size: 20),
-                              onPressed: () {
-                                setModalState(() => selectedDate = null);
-                              },
-                            ),
+                          const Icon(Icons.arrow_drop_down),
                         ],
                       ),
                     ),
                   ),
+                  if (dateError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, left: 12),
+                      child: Text(
+                        dateError!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ),
+                  if (hasProjectEndDate && dateError == null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, left: 12),
+                      child: Text(
+                        'Fecha máxima: ${maxDate.day}/${maxDate.month}/${maxDate.year} (límite del proyecto)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 24),
 
                   // Botón guardar
@@ -406,16 +448,22 @@ class _ProjectDetailContent extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (formKey.currentState!.validate()) {
-                          // Usar el bloc del contexto padre
-                          BlocProvider.of<ProjectDetailBloc>(
-                            modalContext,
-                            listen: false,
-                          ).add(AddTask(
+                        final isFormValid = formKey.currentState!.validate();
+                        
+                        // Validar fecha obligatoria
+                        if (selectedDate == null) {
+                          setModalState(() {
+                            dateError = 'La fecha límite es obligatoria';
+                          });
+                          return;
+                        }
+                        
+                        if (isFormValid) {
+                          bloc.add(AddTask(
                             title: titleController.text.trim(),
                             dueDate: selectedDate,
                           ));
-                          Navigator.pop(context);
+                          Navigator.pop(sheetContext);
                         }
                       },
                       style: ElevatedButton.styleFrom(
