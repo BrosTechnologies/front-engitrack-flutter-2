@@ -12,6 +12,12 @@ import '../bloc/project_detail/project_detail_state.dart';
 import '../widgets/project_stats_card.dart';
 import '../widgets/task_list.dart';
 
+// Workers Feature
+import '../../../workers/domain/repositories/worker_repository.dart';
+import '../../../workers/presentation/bloc/project_workers/project_workers_bloc.dart';
+import '../../../workers/presentation/bloc/project_workers/project_workers_event.dart';
+import '../../../workers/presentation/widgets/project_workers_section.dart';
+
 /// Página de detalle de proyecto
 class ProjectDetailPage extends StatelessWidget {
   final String projectId;
@@ -23,16 +29,26 @@ class ProjectDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          GetIt.instance<ProjectDetailBloc>()..add(LoadProject(projectId)),
-      child: const _ProjectDetailContent(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => GetIt.instance<ProjectDetailBloc>()
+            ..add(LoadProject(projectId)),
+        ),
+        BlocProvider(
+          create: (_) => ProjectWorkersBloc(GetIt.instance<WorkerRepository>())
+            ..add(LoadProjectWorkersEvent(projectId)),
+        ),
+      ],
+      child: _ProjectDetailContent(projectId: projectId),
     );
   }
 }
 
 class _ProjectDetailContent extends StatelessWidget {
-  const _ProjectDetailContent();
+  final String projectId;
+  
+  const _ProjectDetailContent({required this.projectId});
 
   @override
   Widget build(BuildContext context) {
@@ -199,6 +215,7 @@ class _ProjectDetailContent extends StatelessWidget {
           RefreshIndicator(
             onRefresh: () async {
               context.read<ProjectDetailBloc>().add(const RefreshProject());
+              context.read<ProjectWorkersBloc>().add(RefreshProjectWorkersEvent(projectId));
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -218,6 +235,18 @@ class _ProjectDetailContent extends StatelessWidget {
                     onTaskTap: (task) => _onTaskTap(context, task),
                     onTaskDelete: (task) => _onTaskDelete(context, task),
                     onAddTask: () => _showAddTaskDialog(context, project.endDate),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Sección de Trabajadores del proyecto
+                  ProjectWorkersSection(
+                    projectId: projectId,
+                    onAddWorker: () => _navigateToAddWorker(
+                      context, 
+                      project.name,
+                      project.endDate,
+                    ),
                   ),
 
                   const SizedBox(height: 80), // Espacio para FAB
@@ -282,6 +311,24 @@ class _ProjectDetailContent extends StatelessWidget {
 
   void _onTaskDelete(BuildContext context, Task task) {
     context.read<ProjectDetailBloc>().add(DeleteTask(task.taskId));
+  }
+
+  Future<void> _navigateToAddWorker(
+    BuildContext context, 
+    String projectName,
+    DateTime? projectEndDate,
+  ) async {
+    final result = await context.push(
+      '/projects/$projectId/add-worker',
+      extra: {
+        'projectName': projectName,
+        'projectEndDate': projectEndDate,
+      },
+    );
+    // Si se asignó un worker, refrescar la lista
+    if (result == true && context.mounted) {
+      context.read<ProjectWorkersBloc>().add(RefreshProjectWorkersEvent(projectId));
+    }
   }
 
   void _showAddTaskDialog(BuildContext context, DateTime? projectEndDate) {

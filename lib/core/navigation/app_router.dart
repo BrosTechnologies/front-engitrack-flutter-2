@@ -198,10 +198,11 @@ class AppRouter {
           name: 'projectAddWorker',
           builder: (context, state) {
             final projectId = state.pathParameters['id'] ?? '';
-            final projectName = state.extra as String?;
+            final extra = state.extra as Map<String, dynamic>?;
             return WorkersSelectorPage(
               projectId: projectId,
-              projectName: projectName,
+              projectName: extra?['projectName'] as String?,
+              projectEndDate: extra?['projectEndDate'] as DateTime?,
             );
           },
         ),

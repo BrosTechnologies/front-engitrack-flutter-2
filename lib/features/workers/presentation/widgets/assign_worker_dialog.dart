@@ -10,12 +10,16 @@ class AssignWorkerDialog extends StatefulWidget {
   /// Worker a asignar
   final Worker worker;
 
+  /// Fecha límite del proyecto (opcional)
+  final DateTime? projectEndDate;
+
   /// Callback cuando se confirma la asignación
   final void Function(DateTime startDate, DateTime? endDate) onConfirm;
 
   const AssignWorkerDialog({
     super.key,
     required this.worker,
+    this.projectEndDate,
     required this.onConfirm,
   });
 
@@ -23,12 +27,14 @@ class AssignWorkerDialog extends StatefulWidget {
   static Future<bool?> show(
     BuildContext context, {
     required Worker worker,
+    DateTime? projectEndDate,
     required void Function(DateTime startDate, DateTime? endDate) onConfirm,
   }) {
     return showDialog<bool>(
       context: context,
       builder: (context) => AssignWorkerDialog(
         worker: worker,
+        projectEndDate: projectEndDate,
         onConfirm: onConfirm,
       ),
     );
@@ -152,6 +158,37 @@ class _AssignWorkerDialogState extends State<AssignWorkerDialog> {
             ),
             const SizedBox(height: 16),
 
+            // Mostrar fecha límite del proyecto si existe
+            if (widget.projectEndDate != null) ...[  
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Fecha límite del proyecto: ${_dateFormat.format(widget.projectEndDate!)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Fecha de fin (opcional)
             const Text(
               'Fecha de fin (opcional)',
@@ -236,29 +273,31 @@ class _AssignWorkerDialogState extends State<AssignWorkerDialog> {
     BuildContext context, {
     required bool isStartDate,
   }) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // Calcular fecha máxima (fecha límite del proyecto o 2030 si no hay)
+    final maxDate = widget.projectEndDate ?? DateTime(2030);
+    
     final initialDate = isStartDate
         ? _startDate
         : (_endDate ?? _startDate.add(const Duration(days: 30)));
 
-    final firstDate = isStartDate ? DateTime(2020) : _startDate;
-    final lastDate = DateTime(2030);
+    // Fecha de inicio: desde hoy hasta la fecha límite del proyecto
+    // Fecha de fin: desde la fecha de inicio hasta la fecha límite del proyecto
+    final firstDate = isStartDate ? today : _startDate;
+    final lastDate = maxDate;
+
+    // Asegurar que initialDate no exceda lastDate
+    final adjustedInitialDate = initialDate.isAfter(lastDate) 
+        ? lastDate 
+        : (initialDate.isBefore(firstDate) ? firstDate : initialDate);
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: initialDate,
+      initialDate: adjustedInitialDate,
       firstDate: firstDate,
       lastDate: lastDate,
-      locale: const Locale('es', 'ES'),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {

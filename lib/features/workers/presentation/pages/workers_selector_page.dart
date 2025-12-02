@@ -16,7 +16,8 @@ import '../bloc/project_workers/project_workers_state.dart';
 import '../widgets/worker_card.dart';
 import '../widgets/assign_worker_dialog.dart';
 
-/// Página para seleccionar workers (puede usarse para asignar a proyecto)
+/// Página para seleccionar workers existentes y asignarlos a un proyecto
+/// Los usuarios crean su perfil de worker desde la sección de Perfil
 class WorkersSelectorPage extends StatelessWidget {
   /// ID del proyecto al que se quiere asignar (null si solo es listado)
   final String? projectId;
@@ -24,10 +25,14 @@ class WorkersSelectorPage extends StatelessWidget {
   /// Nombre del proyecto (para mostrar en título)
   final String? projectName;
 
+  /// Fecha límite del proyecto (para validar asignaciones)
+  final DateTime? projectEndDate;
+
   const WorkersSelectorPage({
     super.key,
     this.projectId,
     this.projectName,
+    this.projectEndDate,
   });
 
   @override
@@ -47,6 +52,7 @@ class WorkersSelectorPage extends StatelessWidget {
       child: _WorkersSelectorContent(
         projectId: projectId,
         projectName: projectName,
+        projectEndDate: projectEndDate,
       ),
     );
   }
@@ -55,10 +61,12 @@ class WorkersSelectorPage extends StatelessWidget {
 class _WorkersSelectorContent extends StatelessWidget {
   final String? projectId;
   final String? projectName;
+  final DateTime? projectEndDate;
 
   const _WorkersSelectorContent({
     this.projectId,
     this.projectName,
+    this.projectEndDate,
   });
 
   bool get isAssigningMode => projectId != null;
@@ -76,19 +84,6 @@ class _WorkersSelectorContent extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        actions: [
-          // Botón para crear nuevo worker
-          IconButton(
-            icon: const Icon(Icons.person_add_outlined),
-            onPressed: () async {
-              final result = await context.push<Worker>('/worker-form');
-              if (result != null && context.mounted) {
-                context.read<WorkersListBloc>().add(const RefreshWorkersEvent());
-              }
-            },
-            tooltip: 'Nuevo trabajador',
-          ),
-        ],
       ),
       body: BlocListener<ProjectWorkersBloc, ProjectWorkersState>(
         listener: (context, state) {
@@ -130,20 +125,7 @@ class _WorkersSelectorContent extends StatelessWidget {
           },
         ),
       ),
-      floatingActionButton: !isAssigningMode
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                final result = await context.push<Worker>('/worker-form');
-                if (result != null && context.mounted) {
-                  context
-                      .read<WorkersListBloc>()
-                      .add(const RefreshWorkersEvent());
-                }
-              },
-              icon: const Icon(Icons.person_add),
-              label: const Text('Nuevo'),
-            )
-          : null,
+      // FAB removido - Los usuarios crean su perfil de worker desde Perfil
     );
   }
 
@@ -195,7 +177,7 @@ class _WorkersSelectorContent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Sin trabajadores',
+              'Sin trabajadores disponibles',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -204,25 +186,14 @@ class _WorkersSelectorContent extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Crea tu primer trabajador para comenzar',
+              isAssigningMode
+                  ? 'No hay trabajadores registrados para asignar a este proyecto'
+                  : 'Los usuarios pueden registrarse como trabajadores desde su perfil',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey.shade500,
               ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final result = await context.push<Worker>('/worker-form');
-                if (result != null && context.mounted) {
-                  context
-                      .read<WorkersListBloc>()
-                      .add(const RefreshWorkersEvent());
-                }
-              },
-              icon: const Icon(Icons.person_add),
-              label: const Text('Crear trabajador'),
             ),
           ],
         ),
@@ -242,25 +213,13 @@ class _WorkersSelectorContent extends StatelessWidget {
           final worker = workers[index];
           return WorkerCard(
             worker: worker,
-            selectorMode: isAssigningMode,
+            selectorMode: true, // Siempre en modo selector
             onTap: () {
               if (isAssigningMode) {
                 _showAssignDialog(context, worker);
-              } else {
-                // Ir a detalle o editar
-                context.push('/worker-form/${worker.id}');
               }
+              // Si no es modo asignar, no hace nada (solo visualiza)
             },
-            onEdit: isAssigningMode
-                ? null
-                : () {
-                    context.push('/worker-form/${worker.id}');
-                  },
-            onDelete: isAssigningMode
-                ? null
-                : () {
-                    _confirmDelete(context, worker);
-                  },
           );
         },
       ),
@@ -271,6 +230,7 @@ class _WorkersSelectorContent extends StatelessWidget {
     AssignWorkerDialog.show(
       context,
       worker: worker,
+      projectEndDate: projectEndDate,
       onConfirm: (startDate, endDate) {
         context.read<ProjectWorkersBloc>().add(
               AssignWorkerEvent(
@@ -281,33 +241,6 @@ class _WorkersSelectorContent extends StatelessWidget {
               ),
             );
       },
-    );
-  }
-
-  void _confirmDelete(BuildContext context, Worker worker) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Eliminar trabajador'),
-        content: Text(
-          '¿Estás seguro de eliminar a ${worker.fullName}?\n'
-          'Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<WorkersListBloc>().add(DeleteWorkerEvent(worker.id));
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
     );
   }
 }
