@@ -227,6 +227,19 @@ class AppRouter {
           builder: (context, state) => const EditProfilePage(),
         ),
 
+        // Workers create (for profile) - MUST be before /workers/:id
+        GoRoute(
+          path: '/workers/create',
+          name: 'workersCreate',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, String?>?;
+            return WorkerFormPage(
+              prefilledFullName: extra?['fullName'],
+              prefilledPhone: extra?['phone'],
+            );
+          },
+        ),
+
         // Worker detail (view/edit worker)
         GoRoute(
           path: '/workers/:id',
@@ -235,13 +248,6 @@ class AppRouter {
             final workerId = state.pathParameters['id'];
             return WorkerFormPage(workerId: workerId);
           },
-        ),
-
-        // Workers create (for profile)
-        GoRoute(
-          path: '/workers/create',
-          name: 'workersCreate',
-          builder: (context, state) => const WorkerFormPage(),
         ),
       ];
 }

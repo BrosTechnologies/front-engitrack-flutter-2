@@ -133,7 +133,10 @@ Future<void> initializeDependencies() async {
   );
 
   sl.registerFactory<WorkerFormBloc>(
-    () => WorkerFormBloc(sl<WorkerRepository>()),
+    () => WorkerFormBloc(
+      sl<WorkerRepository>(),
+      sl<AuthManager>(),
+    ),
   );
 
   sl.registerFactory<WorkerAssignmentsBloc>(

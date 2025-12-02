@@ -170,7 +170,11 @@ class _ProfilePageContent extends StatelessWidget {
                 onViewWorkerProfile: state.profile.hasWorkerProfile
                     ? () => _navigateToWorkerDetail(context, state.profile.workerId!)
                     : null,
-                onCreateWorkerProfile: () => _navigateToCreateWorker(context),
+                onCreateWorkerProfile: () => _navigateToCreateWorker(
+                  context,
+                  fullName: state.profile.fullName,
+                  phone: state.profile.phone,
+                ),
                 onDeleteWorkerProfile: () => _showDeleteWorkerDialog(context),
               ),
             ),
@@ -254,16 +258,26 @@ class _ProfilePageContent extends StatelessWidget {
     );
   }
 
-  void _navigateToEditProfile(BuildContext context) {
-    context.push('/edit-profile');
+  void _navigateToEditProfile(BuildContext context) async {
+    final result = await context.push<bool>('/edit-profile');
+    if (result == true && context.mounted) {
+      context.read<ProfileBloc>().add(const RefreshProfileEvent());
+    }
   }
 
   void _navigateToWorkerDetail(BuildContext context, String workerId) {
     context.push('/workers/$workerId');
   }
 
-  void _navigateToCreateWorker(BuildContext context) {
-    context.push('/workers/create');
+  void _navigateToCreateWorker(BuildContext context, {String? fullName, String? phone}) async {
+    final result = await context.push('/workers/create', extra: {
+      'fullName': fullName,
+      'phone': phone,
+    });
+    // Si se creó el worker, refrescar el perfil para mostrar el workerId
+    if (result != null && context.mounted) {
+      context.read<ProfileBloc>().add(const RefreshProfileEvent());
+    }
   }
 
   void _showDeleteWorkerDialog(BuildContext context) {

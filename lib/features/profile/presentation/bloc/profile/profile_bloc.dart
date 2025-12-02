@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/auth/auth_manager.dart';
 import '../../../domain/repositories/profile_repository.dart';
 import '../../../../workers/domain/repositories/worker_repository.dart';
+import '../../../domain/entities/user_profile.dart';
 import 'profile_event.dart';
 import 'profile_state.dart';
 
@@ -25,6 +26,39 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<ClearProfileMessageEvent>(_onClearMessage);
   }
 
+  /// Busca el workerId del usuario, primero en AuthManager, luego en la lista de workers
+  Future<String?> _findWorkerId(UserProfile profile) async {
+    // 1. Primero verificar si ya tenemos el workerId guardado
+    final savedWorkerId = await _authManager.getWorkerId();
+    if (savedWorkerId != null && savedWorkerId.isNotEmpty) {
+      return savedWorkerId;
+    }
+
+    // 2. Si no está guardado, buscar en la lista de workers por fullName
+    try {
+      final workersResult = await _workerRepository.getWorkers();
+      
+      return workersResult.fold(
+        (failure) => null,
+        (workers) {
+          // Buscar un worker que coincida con el fullName del perfil
+          final matchingWorker = workers.where(
+            (worker) => worker.fullName.toLowerCase() == profile.fullName.toLowerCase()
+          ).firstOrNull;
+          
+          if (matchingWorker != null) {
+            // Guardar el workerId encontrado para futuras consultas
+            _authManager.saveWorkerId(matchingWorker.id);
+            return matchingWorker.id;
+          }
+          return null;
+        },
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> _onLoadProfile(
     LoadProfileEvent event,
     Emitter<ProfileState> emit,
@@ -41,8 +75,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         await statsResult.fold(
           (failure) async => emit(ProfileError(failure.message)),
           (stats) async {
-            // Verificar si tiene workerId guardado
-            final workerId = await _authManager.getWorkerId();
+            // Buscar el workerId (guardado o en la lista de workers)
+            final workerId = await _findWorkerId(profile);
             final profileWithWorker = workerId != null
                 ? profile.copyWith(workerId: workerId)
                 : profile;
@@ -83,7 +117,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             }
           },
           (stats) async {
-            final workerId = await _authManager.getWorkerId();
+            // Buscar el workerId (guardado o en la lista de workers)
+            final workerId = await _findWorkerId(profile);
             final profileWithWorker = workerId != null
                 ? profile.copyWith(workerId: workerId)
                 : profile;
