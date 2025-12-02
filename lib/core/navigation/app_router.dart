@@ -20,6 +20,10 @@ import '../../features/workers/presentation/pages/workers_selector_page.dart';
 import '../../features/workers/presentation/pages/worker_form_page.dart';
 import '../../features/workers/presentation/pages/worker_assignments_page.dart';
 
+// Profile Feature Pages
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/edit_profile_page.dart';
+
 /// Configuración de rutas de la aplicación usando GoRouter
 /// Define todas las rutas y la lógica de navegación
 class AppRouter {
@@ -44,6 +48,8 @@ class AppRouter {
   static const String calendar = '/calendar';
   static const String createWorkerProfile = '/create-worker-profile';
   static const String projectAddWorker = '/projects/:id/add-worker';
+  static const String editProfile = '/edit-profile';
+  static const String workerDetail = '/workers/:id';
 
   /// Configuración del router
   late final GoRouter router = GoRouter(
@@ -148,7 +154,7 @@ class AppRouter {
             GoRoute(
               path: profile,
               name: 'profile',
-              builder: (context, state) => const _ProfilePlaceholder(),
+              builder: (context, state) => const ProfilePage(),
             ),
           ],
         ),
@@ -212,6 +218,30 @@ class AppRouter {
           path: createWorkerProfile,
           name: 'createWorkerProfile',
           builder: (context, state) => const _CreateWorkerProfilePlaceholder(),
+        ),
+
+        // Edit profile
+        GoRoute(
+          path: editProfile,
+          name: 'editProfile',
+          builder: (context, state) => const EditProfilePage(),
+        ),
+
+        // Worker detail (view/edit worker)
+        GoRoute(
+          path: '/workers/:id',
+          name: 'workerDetail',
+          builder: (context, state) {
+            final workerId = state.pathParameters['id'];
+            return WorkerFormPage(workerId: workerId);
+          },
+        ),
+
+        // Workers create (for profile)
+        GoRoute(
+          path: '/workers/create',
+          name: 'workersCreate',
+          builder: (context, state) => const WorkerFormPage(),
         ),
       ];
 }

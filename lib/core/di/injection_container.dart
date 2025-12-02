@@ -31,6 +31,13 @@ import '../../features/workers/presentation/bloc/worker_form/worker_form_bloc.da
 import '../../features/workers/presentation/bloc/worker_assignments/worker_assignments_bloc.dart';
 import '../../features/workers/presentation/bloc/project_workers/project_workers_bloc.dart';
 
+// Profile Feature imports
+import '../../features/profile/data/datasources/profile_remote_datasource.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/presentation/bloc/profile/profile_bloc.dart';
+import '../../features/profile/presentation/bloc/edit_profile/edit_profile_bloc.dart';
+
 /// Instancia global de GetIt para inyección de dependencias
 final GetIt sl = GetIt.instance;
 
@@ -135,6 +142,30 @@ Future<void> initializeDependencies() async {
 
   sl.registerFactory<ProjectWorkersBloc>(
     () => ProjectWorkersBloc(sl<WorkerRepository>()),
+  );
+
+  // ============ PROFILE FEATURE ============
+  // DataSource
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(sl<ApiClient>()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(sl<ProfileRemoteDataSource>()),
+  );
+
+  // Blocs
+  sl.registerFactory<ProfileBloc>(
+    () => ProfileBloc(
+      sl<ProfileRepository>(),
+      sl<WorkerRepository>(),
+      sl<AuthManager>(),
+    ),
+  );
+
+  sl.registerFactory<EditProfileBloc>(
+    () => EditProfileBloc(sl<ProfileRepository>()),
   );
 
   // ============ OTHER FEATURES ============

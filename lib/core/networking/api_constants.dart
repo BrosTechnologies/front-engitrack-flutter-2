@@ -65,6 +65,16 @@ class ApiConstants {
   static String removeWorkerFromProject(String projectId, String workerId) =>
       '/api/projects/$projectId/workers/$workerId';
 
+  // ============ USER PROFILE ENDPOINTS ============
+  /// GET/PATCH - Perfil del usuario actual
+  static const String userProfile = '/api/users/profile';
+
+  /// GET - Estadísticas del usuario actual
+  static const String userProfileStats = '/api/users/profile/stats';
+
+  /// GET - Usuario por ID
+  static String userById(String id) => '/api/users/$id';
+
   // ============ TIMEOUTS ============
   /// Timeout para conexión en milisegundos
   static const int connectionTimeout = 30000;

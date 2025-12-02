@@ -14,6 +14,11 @@ class AppColors {
   static const Color primaryLight = Color(0xFF4DA3FF);
   static const Color primaryDark = Color(0xFF0056B3);
 
+  /// Verde secundario - Para acentos y trabajadores
+  static const Color secondary = Color(0xFF4A9B7F);
+  static const Color secondaryLight = Color(0xFF7AC4A9);
+  static const Color secondaryDark = Color(0xFF2D7A5E);
+
   // ============ SEMANTIC COLORS ============
   /// Rojo - Para errores y alertas
   static const Color error = Color(0xFFE53E3E);
