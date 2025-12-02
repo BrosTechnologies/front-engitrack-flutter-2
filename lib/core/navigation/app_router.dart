@@ -13,6 +13,7 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/projects/presentation/pages/projects_page.dart';
 import '../../features/projects/presentation/pages/project_detail_page.dart';
 import '../../features/projects/presentation/pages/create_project_page.dart';
+import '../../features/projects/domain/entities/project.dart';
 
 /// Configuración de rutas de la aplicación usando GoRouter
 /// Define todas las rutas y la lógica de navegación
@@ -29,6 +30,7 @@ class AppRouter {
   static const String projects = '/projects';
   static const String projectDetail = '/projects/:id';
   static const String createProject = '/projects/create';
+  static const String editProject = '/projects/edit';
   static const String profile = '/profile';
   static const String workers = '/workers';
   static const String calendar = '/calendar';
@@ -110,6 +112,14 @@ class AppRouter {
                   path: 'create',
                   name: 'createProject',
                   builder: (context, state) => const CreateProjectPage(),
+                ),
+                GoRoute(
+                  path: 'edit',
+                  name: 'editProject',
+                  builder: (context, state) {
+                    final project = state.extra as Project?;
+                    return CreateProjectPage(project: project);
+                  },
                 ),
                 GoRoute(
                   path: ':id',
