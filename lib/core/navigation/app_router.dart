@@ -9,6 +9,11 @@ import '../auth/auth_manager.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 
+// Projects Feature Pages
+import '../../features/projects/presentation/pages/projects_page.dart';
+import '../../features/projects/presentation/pages/project_detail_page.dart';
+import '../../features/projects/presentation/pages/create_project_page.dart';
+
 /// Configuración de rutas de la aplicación usando GoRouter
 /// Define todas las rutas y la lógica de navegación
 class AppRouter {
@@ -23,6 +28,7 @@ class AppRouter {
   static const String home = '/home';
   static const String projects = '/projects';
   static const String projectDetail = '/projects/:id';
+  static const String createProject = '/projects/create';
   static const String profile = '/profile';
   static const String workers = '/workers';
   static const String calendar = '/calendar';
@@ -98,14 +104,19 @@ class AppRouter {
             GoRoute(
               path: projects,
               name: 'projects',
-              builder: (context, state) => const _ProjectsPlaceholder(),
+              builder: (context, state) => const ProjectsPage(),
               routes: [
+                GoRoute(
+                  path: 'create',
+                  name: 'createProject',
+                  builder: (context, state) => const CreateProjectPage(),
+                ),
                 GoRoute(
                   path: ':id',
                   name: 'projectDetail',
                   builder: (context, state) {
                     final projectId = state.pathParameters['id'] ?? '';
-                    return _ProjectDetailPlaceholder(projectId: projectId);
+                    return ProjectDetailPage(projectId: projectId);
                   },
                 ),
               ],
@@ -174,67 +185,6 @@ class _HomePlaceholder extends StatelessWidget {
           SizedBox(height: 8),
           Text('Dashboard - Placeholder'),
         ],
-      ),
-    );
-  }
-}
-
-class _ProjectsPlaceholder extends StatelessWidget {
-  const _ProjectsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.folder, size: 64, color: Colors.blue),
-          const SizedBox(height: 16),
-          const Text(
-            'Proyectos',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text('Lista de proyectos - Placeholder'),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => context.go('${AppRouter.projects}/123'),
-            child: const Text('Ver proyecto de ejemplo'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProjectDetailPlaceholder extends StatelessWidget {
-  final String projectId;
-
-  const _ProjectDetailPlaceholder({required this.projectId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Proyecto $projectId')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.description, size: 64, color: Colors.blue),
-            const SizedBox(height: 16),
-            Text(
-              'Detalle del Proyecto',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text('ID: $projectId'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => context.go(AppRouter.projects),
-              child: const Text('Volver a proyectos'),
-            ),
-          ],
-        ),
       ),
     );
   }

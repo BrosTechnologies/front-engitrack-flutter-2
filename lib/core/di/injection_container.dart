@@ -14,6 +14,14 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/login/login_bloc.dart';
 import '../../features/auth/presentation/bloc/register/register_bloc.dart';
 
+// Projects Feature imports
+import '../../features/projects/data/datasources/project_remote_datasource.dart';
+import '../../features/projects/data/repositories/project_repository_impl.dart';
+import '../../features/projects/domain/repositories/project_repository.dart';
+import '../../features/projects/presentation/bloc/projects_list/projects_list_bloc.dart';
+import '../../features/projects/presentation/bloc/project_detail/project_detail_bloc.dart';
+import '../../features/projects/presentation/bloc/create_project/create_project_bloc.dart';
+
 /// Instancia global de GetIt para inyección de dependencias
 final GetIt sl = GetIt.instance;
 
@@ -59,6 +67,33 @@ Future<void> initializeDependencies() async {
     () => RegisterBloc(sl<AuthRepository>()),
   );
 
+  // ============ PROJECTS FEATURE ============
+  // DataSource
+  sl.registerLazySingleton<ProjectRemoteDataSource>(
+    () => ProjectRemoteDataSourceImpl(sl<ApiClient>()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<ProjectRepository>(
+    () => ProjectRepositoryImpl(sl<ProjectRemoteDataSource>()),
+  );
+
+  // Blocs
+  sl.registerFactory<ProjectsListBloc>(
+    () => ProjectsListBloc(sl<ProjectRepository>()),
+  );
+
+  sl.registerFactory<ProjectDetailBloc>(
+    () => ProjectDetailBloc(sl<ProjectRepository>()),
+  );
+
+  sl.registerFactory<CreateProjectBloc>(
+    () => CreateProjectBloc(
+      sl<ProjectRepository>(),
+      sl<AuthManager>(),
+    ),
+  );
+
   // ============ NAVIGATION ============
   // AppRouter - depende de AuthManager (registrar después de auth)
   sl.registerSingleton<AppRouter>(
@@ -68,9 +103,6 @@ Future<void> initializeDependencies() async {
   // ============ OTHER FEATURES ============
   // Los repositorios, casos de uso y blocs de otras features
   // se agregarán aquí en fases posteriores
-  
-  // Projects Feature
-  // sl.registerFactory(() => ProjectsBloc(sl()));
   
   // Workers Feature
   // sl.registerFactory(() => WorkersBloc(sl()));

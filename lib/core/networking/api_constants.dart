@@ -27,14 +27,24 @@ class ApiConstants {
   /// GET - Proyectos por usuario
   static String projectsByUser(String userId) => '/api/projects/user/$userId';
 
+  /// PATCH - Completar proyecto
+  static String projectComplete(String id) => '/api/projects/$id/complete';
+
   // ============ TASKS ENDPOINTS ============
   /// GET - Tareas de un proyecto / POST - Crear tarea
-  static String tasksByProject(String projectId) =>
+  static String projectTasks(String projectId) =>
       '/api/projects/$projectId/tasks';
 
-  /// PUT/DELETE - Tarea por ID
+  /// Alias para compatibilidad
+  static String tasksByProject(String projectId) => projectTasks(projectId);
+
+  /// DELETE - Tarea por ID
   static String taskById(String projectId, String taskId) =>
       '/api/projects/$projectId/tasks/$taskId';
+
+  /// PATCH - Actualizar estado de tarea
+  static String taskStatus(String projectId, String taskId) =>
+      '/api/projects/$projectId/tasks/$taskId/status';
 
   // ============ WORKERS ENDPOINTS ============
   /// GET - Listar workers / POST - Crear worker
