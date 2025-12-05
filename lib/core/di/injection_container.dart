@@ -13,6 +13,8 @@ import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/login/login_bloc.dart';
 import '../../features/auth/presentation/bloc/register/register_bloc.dart';
+import '../../features/auth/presentation/bloc/password_recovery/password_recovery_bloc.dart';
+import '../../features/auth/presentation/bloc/change_password/change_password_bloc.dart';
 
 // Projects Feature imports
 import '../../features/projects/data/datasources/project_remote_datasource.dart';
@@ -87,6 +89,14 @@ Future<void> initializeDependencies() async {
 
   sl.registerFactory<RegisterBloc>(
     () => RegisterBloc(sl<AuthRepository>()),
+  );
+
+  sl.registerFactory<PasswordRecoveryBloc>(
+    () => PasswordRecoveryBloc(sl<AuthRepository>()),
+  );
+
+  sl.registerFactory<ChangePasswordBloc>(
+    () => ChangePasswordBloc(sl<AuthRepository>()),
   );
 
   // ============ PROJECTS FEATURE ============

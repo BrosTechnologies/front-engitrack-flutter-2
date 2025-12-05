@@ -6,6 +6,10 @@ import '../../../../core/networking/api_constants.dart';
 import '../models/auth_response_dto.dart';
 import '../models/login_request_dto.dart';
 import '../models/register_request_dto.dart';
+import '../models/forgot_password_request_dto.dart';
+import '../models/verify_reset_code_request_dto.dart';
+import '../models/reset_password_request_dto.dart';
+import '../models/change_password_request_dto.dart';
 
 /// Excepción personalizada para errores de autenticación
 class AuthException implements Exception {
@@ -28,6 +32,22 @@ abstract class AuthRemoteDataSource {
   /// Realiza registro y retorna el DTO de respuesta
   /// Throws [AuthException] si hay error
   Future<AuthResponseDto> register(RegisterRequestDto request);
+  
+  /// Solicita código de recuperación de contraseña
+  /// Throws [AuthException] si hay error
+  Future<void> forgotPassword(ForgotPasswordRequestDto request);
+  
+  /// Verifica el código de recuperación
+  /// Throws [AuthException] si hay error
+  Future<void> verifyResetCode(VerifyResetCodeRequestDto request);
+  
+  /// Restablece la contraseña con el código verificado
+  /// Throws [AuthException] si hay error
+  Future<void> resetPassword(ResetPasswordRequestDto request);
+  
+  /// Cambia la contraseña del usuario autenticado
+  /// Throws [AuthException] si hay error
+  Future<void> changePassword(ChangePasswordRequestDto request);
 }
 
 /// Implementación del DataSource remoto de autenticación
@@ -70,6 +90,70 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       throw const AuthException('Respuesta inválida del servidor');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<void> forgotPassword(ForgotPasswordRequestDto request) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.forgotPassword,
+        data: request.toJson(),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw const AuthException('Error al enviar código de recuperación');
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<void> verifyResetCode(VerifyResetCodeRequestDto request) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.verifyResetCode,
+        data: request.toJson(),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw const AuthException('Código inválido o expirado');
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<void> resetPassword(ResetPasswordRequestDto request) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.resetPassword,
+        data: request.toJson(),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw const AuthException('Error al restablecer contraseña');
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<void> changePassword(ChangePasswordRequestDto request) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.changePassword,
+        data: request.toJson(),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw const AuthException('Error al cambiar contraseña');
+      }
     } on DioException catch (e) {
       throw _handleDioError(e);
     }

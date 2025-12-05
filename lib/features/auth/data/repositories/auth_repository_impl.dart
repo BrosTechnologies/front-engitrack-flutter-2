@@ -8,6 +8,10 @@ import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/login_request_dto.dart';
 import '../models/register_request_dto.dart';
+import '../models/forgot_password_request_dto.dart';
+import '../models/verify_reset_code_request_dto.dart';
+import '../models/reset_password_request_dto.dart';
+import '../models/change_password_request_dto.dart';
 
 /// Implementación del repositorio de autenticación
 /// Conecta el datasource remoto con el domain layer
@@ -133,5 +137,91 @@ class AuthRepositoryImpl implements AuthRepository {
       role: user.role,
       fullName: user.fullName ?? '',
     );
+  }
+
+  @override
+  Future<Either<Failure, void>> forgotPassword({
+    required String email,
+  }) async {
+    try {
+      final request = ForgotPasswordRequestDto(email: email);
+      await _remoteDataSource.forgotPassword(request);
+      return const Right(null);
+    } on AuthException catch (e) {
+      if (e.statusCode == 404) {
+        return Left(AuthFailure('No existe una cuenta con este email'));
+      }
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Error inesperado: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> verifyResetCode({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      final request = VerifyResetCodeRequestDto(email: email, code: code);
+      await _remoteDataSource.verifyResetCode(request);
+      return const Right(null);
+    } on AuthException catch (e) {
+      if (e.statusCode == 400 || e.statusCode == 401) {
+        return Left(ValidationFailure('Código inválido o expirado'));
+      }
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Error inesperado: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final request = ResetPasswordRequestDto(
+        email: email,
+        code: code,
+        newPassword: newPassword,
+      );
+      await _remoteDataSource.resetPassword(request);
+      return const Right(null);
+    } on AuthException catch (e) {
+      if (e.statusCode == 400 || e.statusCode == 401) {
+        return Left(ValidationFailure('Código inválido o expirado'));
+      }
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Error inesperado: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final request = ChangePasswordRequestDto(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      await _remoteDataSource.changePassword(request);
+      return const Right(null);
+    } on AuthException catch (e) {
+      if (e.statusCode == 401) {
+        return Left(AuthFailure('Contraseña actual incorrecta'));
+      }
+      if (e.statusCode == 400) {
+        return Left(ValidationFailure(e.message));
+      }
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Error inesperado: ${e.toString()}'));
+    }
   }
 }

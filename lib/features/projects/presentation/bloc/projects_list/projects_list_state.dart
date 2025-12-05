@@ -1,5 +1,6 @@
 // lib/features/projects/presentation/bloc/projects_list/projects_list_state.dart
 
+import 'dart:math';
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/project.dart';
 import '../../../domain/enums/project_status.dart';
@@ -35,21 +36,50 @@ class ProjectsListLoaded extends ProjectsListState {
   
   /// Búsqueda actual
   final String? currentSearchQuery;
+  
+  /// Página actual (1-indexed)
+  final int currentPage;
+  
+  /// Número de elementos por página
+  final int itemsPerPage;
 
   const ProjectsListLoaded({
     required this.projects,
     List<Project>? filteredProjects,
     this.currentStatusFilter,
     this.currentSearchQuery,
+    this.currentPage = 1,
+    this.itemsPerPage = 10,
   }) : filteredProjects = filteredProjects ?? projects;
 
-  /// Lista de proyectos a mostrar
-  List<Project> get displayProjects => filteredProjects;
+  /// Número total de páginas
+  int get totalPages => (filteredProjects.length / itemsPerPage).ceil();
+  
+  /// Lista de proyectos a mostrar (paginada)
+  List<Project> get displayProjects {
+    final startIndex = (currentPage - 1) * itemsPerPage;
+    final endIndex = min(startIndex + itemsPerPage, filteredProjects.length);
+    
+    if (startIndex >= filteredProjects.length) {
+      return [];
+    }
+    
+    return filteredProjects.sublist(startIndex, endIndex);
+  }
+  
+  /// Total de proyectos filtrados
+  int get totalFilteredProjects => filteredProjects.length;
 
   /// Verifica si hay filtros aplicados
   bool get hasFilters =>
       currentStatusFilter != null ||
       (currentSearchQuery != null && currentSearchQuery!.isNotEmpty);
+  
+  /// Verifica si hay página anterior
+  bool get hasPreviousPage => currentPage > 1;
+  
+  /// Verifica si hay página siguiente
+  bool get hasNextPage => currentPage < totalPages;
 
   /// Número de proyectos por estado
   int get activeCount =>
@@ -64,6 +94,8 @@ class ProjectsListLoaded extends ProjectsListState {
     List<Project>? filteredProjects,
     ProjectStatus? currentStatusFilter,
     String? currentSearchQuery,
+    int? currentPage,
+    int? itemsPerPage,
     bool clearStatusFilter = false,
     bool clearSearchQuery = false,
   }) {
@@ -74,6 +106,8 @@ class ProjectsListLoaded extends ProjectsListState {
           clearStatusFilter ? null : (currentStatusFilter ?? this.currentStatusFilter),
       currentSearchQuery:
           clearSearchQuery ? null : (currentSearchQuery ?? this.currentSearchQuery),
+      currentPage: currentPage ?? this.currentPage,
+      itemsPerPage: itemsPerPage ?? this.itemsPerPage,
     );
   }
 
@@ -83,6 +117,8 @@ class ProjectsListLoaded extends ProjectsListState {
         filteredProjects,
         currentStatusFilter,
         currentSearchQuery,
+        currentPage,
+        itemsPerPage,
       ];
 }
 

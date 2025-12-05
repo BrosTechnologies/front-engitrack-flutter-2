@@ -45,3 +45,23 @@ class FilterByStatus extends ProjectsListEvent {
 class ClearFilters extends ProjectsListEvent {
   const ClearFilters();
 }
+
+/// Cambiar página de la lista
+class ChangePage extends ProjectsListEvent {
+  final int page;
+
+  const ChangePage(this.page);
+
+  @override
+  List<Object?> get props => [page];
+}
+
+/// Ir a la página siguiente
+class NextPage extends ProjectsListEvent {
+  const NextPage();
+}
+
+/// Ir a la página anterior
+class PreviousPage extends ProjectsListEvent {
+  const PreviousPage();
+}

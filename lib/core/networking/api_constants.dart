@@ -17,6 +17,15 @@ class ApiConstants {
   /// POST - Registro de usuario
   static const String register = '/auth/register';
 
+  /// POST - Solicitar código de recuperación de contraseña
+  static const String forgotPassword = '/auth/forgot-password';
+
+  /// POST - Verificar código de recuperación
+  static const String verifyResetCode = '/auth/verify-reset-code';
+
+  /// POST - Restablecer contraseña con código
+  static const String resetPassword = '/auth/reset-password';
+
   // ============ PROJECTS ENDPOINTS ============
   /// GET - Listar proyectos / POST - Crear proyecto
   static const String projects = '/api/projects';
@@ -74,6 +83,9 @@ class ApiConstants {
 
   /// GET - Usuario por ID
   static String userById(String id) => '/api/users/$id';
+
+  /// POST - Cambiar contraseña del usuario autenticado
+  static const String changePassword = '/api/users/change-password';
 
   // ============ TIMEOUTS ============
   /// Timeout para conexión en milisegundos
