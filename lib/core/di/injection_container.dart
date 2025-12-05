@@ -38,6 +38,12 @@ import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/presentation/bloc/profile/profile_bloc.dart';
 import '../../features/profile/presentation/bloc/edit_profile/edit_profile_bloc.dart';
 
+// Dashboard Feature imports
+import '../../features/dashboard/presentation/bloc/dashboard_bloc.dart';
+
+// Calendar Feature imports
+import '../../features/calendar/presentation/bloc/calendar_bloc.dart';
+
 /// Instancia global de GetIt para inyección de dependencias
 final GetIt sl = GetIt.instance;
 
@@ -169,6 +175,19 @@ Future<void> initializeDependencies() async {
 
   sl.registerFactory<EditProfileBloc>(
     () => EditProfileBloc(sl<ProfileRepository>()),
+  );
+
+  // ============ DASHBOARD FEATURE ============
+  sl.registerFactory<DashboardBloc>(
+    () => DashboardBloc(
+      sl<ProjectRepository>(),
+      sl<ProfileRepository>(),
+    ),
+  );
+
+  // ============ CALENDAR FEATURE ============
+  sl.registerFactory<CalendarBloc>(
+    () => CalendarBloc(sl<ProjectRepository>()),
   );
 
   // ============ OTHER FEATURES ============
