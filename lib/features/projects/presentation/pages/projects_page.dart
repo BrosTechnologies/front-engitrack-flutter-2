@@ -351,23 +351,162 @@ class _ProjectsPageContentState extends State<_ProjectsPageContent> {
   }
 
   Widget _buildProjectsList(ProjectsListLoaded state) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        context.read<ProjectsListBloc>().add(const RefreshProjects());
-      },
-      color: const Color(0xFF007AFF),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: state.displayProjects.length,
-        itemBuilder: (context, index) {
-          final project = state.displayProjects[index];
-          return ProjectCard(
-            project: project,
-            onTap: () => context.push(
-              AppRouter.projectDetail.replaceFirst(':id', project.id),
+    return Column(
+      children: [
+        // Lista de proyectos
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              context.read<ProjectsListBloc>().add(const RefreshProjects());
+            },
+            color: const Color(0xFF007AFF),
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: state.displayProjects.length,
+              itemBuilder: (context, index) {
+                final project = state.displayProjects[index];
+                return ProjectCard(
+                  project: project,
+                  onTap: () => context.push(
+                    AppRouter.projectDetail.replaceFirst(':id', project.id),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
+        
+        // Controles de paginación
+        if (state.totalPages > 1)
+          _buildPaginationControls(state),
+      ],
+    );
+  }
+  
+  Widget _buildPaginationControls(ProjectsListLoaded state) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Botón anterior
+          IconButton(
+            onPressed: state.hasPreviousPage
+                ? () => context.read<ProjectsListBloc>().add(const PreviousPage())
+                : null,
+            icon: const Icon(Icons.chevron_left),
+            color: const Color(0xFF007AFF),
+            disabledColor: Colors.grey.shade300,
+          ),
+          
+          // Números de página
+          ..._buildPageNumbers(state),
+          
+          // Botón siguiente
+          IconButton(
+            onPressed: state.hasNextPage
+                ? () => context.read<ProjectsListBloc>().add(const NextPage())
+                : null,
+            icon: const Icon(Icons.chevron_right),
+            color: const Color(0xFF007AFF),
+            disabledColor: Colors.grey.shade300,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  List<Widget> _buildPageNumbers(ProjectsListLoaded state) {
+    final List<Widget> pages = [];
+    final currentPage = state.currentPage;
+    final totalPages = state.totalPages;
+    
+    // Mostrar máximo 5 páginas visibles
+    int startPage = currentPage - 2;
+    int endPage = currentPage + 2;
+    
+    if (startPage < 1) {
+      startPage = 1;
+      endPage = (5).clamp(1, totalPages);
+    }
+    
+    if (endPage > totalPages) {
+      endPage = totalPages;
+      startPage = (totalPages - 4).clamp(1, totalPages);
+    }
+    
+    // Primera página y elipsis si es necesario
+    if (startPage > 1) {
+      pages.add(_buildPageButton(1, currentPage == 1));
+      if (startPage > 2) {
+        pages.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text('...', style: TextStyle(color: Colors.grey.shade500)),
+          ),
+        );
+      }
+    }
+    
+    // Páginas del rango
+    for (int i = startPage; i <= endPage; i++) {
+      if (i > 1 || startPage == 1) {
+        pages.add(_buildPageButton(i, currentPage == i));
+      }
+    }
+    
+    // Elipsis y última página si es necesario
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text('...', style: TextStyle(color: Colors.grey.shade500)),
+          ),
+        );
+      }
+      pages.add(_buildPageButton(totalPages, currentPage == totalPages));
+    }
+    
+    return pages;
+  }
+  
+  Widget _buildPageButton(int page, bool isSelected) {
+    return GestureDetector(
+      onTap: isSelected 
+          ? null 
+          : () => context.read<ProjectsListBloc>().add(ChangePage(page)),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF007AFF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: isSelected 
+              ? null 
+              : Border.all(color: Colors.grey.shade300),
+        ),
+        child: Center(
+          child: Text(
+            '$page',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : Colors.grey.shade700,
+            ),
+          ),
+        ),
       ),
     );
   }

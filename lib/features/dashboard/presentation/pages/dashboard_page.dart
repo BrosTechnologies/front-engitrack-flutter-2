@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../main/presentation/pages/main_page.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
@@ -260,8 +261,11 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 TextButton(
                   onPressed: () {
-                    // Navegar a la lista completa de proyectos
-                    // Se manejará con el BottomNav
+                    // Navegar a la pestaña de proyectos (index 1)
+                    final navigator = MainPageNavigator.of(context);
+                    if (navigator != null) {
+                      navigator.navigateToTab(1);
+                    }
                   },
                   child: const Text(
                     'Ver todos',

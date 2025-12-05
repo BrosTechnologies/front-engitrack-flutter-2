@@ -195,7 +195,7 @@ class _ProfilePageContent extends StatelessWidget {
                   icon: Icons.lock_outline,
                   title: 'Cambiar contraseña',
                   subtitle: 'Actualiza tu contraseña',
-                  onTap: () => _showComingSoonSnackbar(context),
+                  onTap: () => context.push('/change-password'),
                 ),
               ],
             ),
@@ -384,15 +384,6 @@ class _ProfilePageContent extends StatelessWidget {
             child: const Text('Cerrar'),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showComingSoonSnackbar(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Próximamente disponible'),
-        duration: Duration(seconds: 2),
       ),
     );
   }

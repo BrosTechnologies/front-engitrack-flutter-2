@@ -7,6 +7,11 @@ import '../auth/auth_manager.dart';
 // Auth Feature Pages
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
+import '../../features/auth/presentation/pages/verify_reset_code_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
+import '../../features/auth/presentation/pages/change_password_page.dart';
+import '../../features/auth/presentation/bloc/password_recovery/password_recovery_bloc.dart';
 
 // Main Feature Page (with Bottom Navigation)
 import '../../features/main/presentation/pages/main_page.dart';
@@ -37,6 +42,10 @@ class AppRouter {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+  static const String verifyResetCode = '/verify-reset-code';
+  static const String resetPassword = '/reset-password';
+  static const String changePassword = '/change-password';
   static const String main = '/main';
   static const String home = '/home';
   static const String projects = '/projects';
@@ -68,22 +77,28 @@ class AppRouter {
     GoRouterState state,
   ) async {
     final isLoggedIn = await _authManager.isLoggedIn();
-    final isAuthRoute = state.matchedLocation == login ||
-        state.matchedLocation == register ||
-        state.matchedLocation == splash;
+    final location = state.matchedLocation;
+    
+    // Rutas públicas de auth (no requieren autenticación)
+    final isPublicAuthRoute = location == login ||
+        location == register ||
+        location == splash ||
+        location == forgotPassword ||
+        location == verifyResetCode ||
+        location == resetPassword;
 
     // Si está en splash, redirigir según estado de login
-    if (state.matchedLocation == splash) {
+    if (location == splash) {
       return isLoggedIn ? main : login;
     }
 
-    // Si no está logueado y no está en ruta de auth, ir a login
-    if (!isLoggedIn && !isAuthRoute) {
+    // Si no está logueado y no está en ruta pública, ir a login
+    if (!isLoggedIn && !isPublicAuthRoute) {
       return login;
     }
 
-    // Si está logueado y está en ruta de auth, ir a main
-    if (isLoggedIn && isAuthRoute && state.matchedLocation != splash) {
+    // Si está logueado y está en login/register, ir a main
+    if (isLoggedIn && (location == login || location == register)) {
       return main;
     }
 
@@ -108,6 +123,34 @@ class AppRouter {
           path: register,
           name: 'register',
           builder: (context, state) => const RegisterPage(),
+        ),
+        
+        // Password Recovery Routes
+        GoRoute(
+          path: forgotPassword,
+          name: 'forgotPassword',
+          builder: (context, state) => const ForgotPasswordPage(),
+        ),
+        GoRoute(
+          path: verifyResetCode,
+          name: 'verifyResetCode',
+          builder: (context, state) {
+            final bloc = state.extra as PasswordRecoveryBloc;
+            return VerifyResetCodePage(bloc: bloc);
+          },
+        ),
+        GoRoute(
+          path: resetPassword,
+          name: 'resetPassword',
+          builder: (context, state) {
+            final bloc = state.extra as PasswordRecoveryBloc;
+            return ResetPasswordPage(bloc: bloc);
+          },
+        ),
+        GoRoute(
+          path: changePassword,
+          name: 'changePassword',
+          builder: (context, state) => const ChangePasswordPage(),
         ),
 
         // Main page with bottom navigation (Dashboard, Projects, Calendar, Profile)

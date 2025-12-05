@@ -20,6 +20,9 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
     on<SearchProjects>(_onSearchProjects);
     on<FilterByStatus>(_onFilterByStatus);
     on<ClearFilters>(_onClearFilters);
+    on<ChangePage>(_onChangePage);
+    on<NextPage>(_onNextPage);
+    on<PreviousPage>(_onPreviousPage);
   }
 
   /// Carga inicial de proyectos
@@ -38,7 +41,7 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
         if (projects.isEmpty) {
           emit(const ProjectsListEmpty());
         } else {
-          emit(ProjectsListLoaded(projects: projects));
+          emit(ProjectsListLoaded(projects: projects, currentPage: 1));
         }
       },
     );
@@ -80,9 +83,10 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
               filteredProjects: filtered,
               currentStatusFilter: currentState.currentStatusFilter,
               currentSearchQuery: currentState.currentSearchQuery,
+              currentPage: 1, // Reset to first page on refresh
             ));
           } else {
-            emit(ProjectsListLoaded(projects: projects));
+            emit(ProjectsListLoaded(projects: projects, currentPage: 1));
           }
         }
       },
@@ -116,6 +120,7 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
           projects: projects,
           filteredProjects: filtered,
           currentStatusFilter: currentStatusFilter,
+          currentPage: 1, // Reset to first page on search
         ));
       }
     } else {
@@ -130,6 +135,7 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
           filteredProjects: filtered,
           currentStatusFilter: currentStatusFilter,
           currentSearchQuery: query,
+          currentPage: 1, // Reset to first page on search
         ));
       }
     }
@@ -164,6 +170,7 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
         filteredProjects: filtered,
         currentStatusFilter: event.status,
         currentSearchQuery: currentSearchQuery,
+        currentPage: 1, // Reset to first page on filter change
       ));
     }
   }
@@ -174,10 +181,51 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
     Emitter<ProjectsListState> emit,
   ) async {
     if (_allProjects.isNotEmpty) {
-      emit(ProjectsListLoaded(projects: _allProjects));
+      emit(ProjectsListLoaded(projects: _allProjects, currentPage: 1));
     } else {
       // Recargar proyectos
       add(const LoadProjects());
+    }
+  }
+
+  /// Cambiar a una página específica
+  Future<void> _onChangePage(
+    ChangePage event,
+    Emitter<ProjectsListState> emit,
+  ) async {
+    if (state is ProjectsListLoaded) {
+      final currentState = state as ProjectsListLoaded;
+      final newPage = event.page.clamp(1, currentState.totalPages);
+      
+      if (newPage != currentState.currentPage) {
+        emit(currentState.copyWith(currentPage: newPage));
+      }
+    }
+  }
+
+  /// Ir a la página siguiente
+  Future<void> _onNextPage(
+    NextPage event,
+    Emitter<ProjectsListState> emit,
+  ) async {
+    if (state is ProjectsListLoaded) {
+      final currentState = state as ProjectsListLoaded;
+      if (currentState.hasNextPage) {
+        emit(currentState.copyWith(currentPage: currentState.currentPage + 1));
+      }
+    }
+  }
+
+  /// Ir a la página anterior
+  Future<void> _onPreviousPage(
+    PreviousPage event,
+    Emitter<ProjectsListState> emit,
+  ) async {
+    if (state is ProjectsListLoaded) {
+      final currentState = state as ProjectsListLoaded;
+      if (currentState.hasPreviousPage) {
+        emit(currentState.copyWith(currentPage: currentState.currentPage - 1));
+      }
     }
   }
 

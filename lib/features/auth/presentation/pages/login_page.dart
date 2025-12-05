@@ -154,7 +154,32 @@ class _LoginView extends StatelessWidget {
                     enabled: !state.isLoading,
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 12),
+
+                  // Link "¿Olvidaste tu contraseña?"
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: state.isLoading
+                          ? null
+                          : () => context.push(AppRouter.forgotPassword),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 36),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(
+                          color: Color(0xFF007AFF),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
 
                   // Botón de Login
                   AuthButton(

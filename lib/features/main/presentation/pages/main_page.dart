@@ -13,6 +13,24 @@ import '../../../calendar/presentation/pages/calendar_page.dart';
 import '../../../profile/presentation/bloc/profile/profile_bloc.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 
+/// Provider para manejar la navegación entre tabs desde cualquier página hija
+class MainPageNavigator extends InheritedWidget {
+  final void Function(int index) navigateToTab;
+
+  const MainPageNavigator({
+    super.key,
+    required this.navigateToTab,
+    required super.child,
+  });
+
+  static MainPageNavigator? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<MainPageNavigator>();
+  }
+
+  @override
+  bool updateShouldNotify(MainPageNavigator oldWidget) => false;
+}
+
 /// Página principal con navegación por pestañas
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -30,6 +48,14 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     _initializePages();
+  }
+
+  void _navigateToTab(int index) {
+    if (index >= 0 && index < _pages.length) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   void _initializePages() {
@@ -55,12 +81,15 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+    return MainPageNavigator(
+      navigateToTab: _navigateToTab,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _pages,
+        ),
+        bottomNavigationBar: _buildBottomNavigationBar(),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 

@@ -38,4 +38,30 @@ abstract class AuthRepository {
   /// Obtiene el usuario actual desde el storage local
   /// Retorna null si no hay usuario logueado
   Future<User?> getCurrentUser();
+  
+  /// Solicita código de recuperación de contraseña
+  /// Envía un código de 6 dígitos al email
+  Future<Either<Failure, void>> forgotPassword({
+    required String email,
+  });
+  
+  /// Verifica el código de recuperación
+  /// Retorna success si el código es válido
+  Future<Either<Failure, void>> verifyResetCode({
+    required String email,
+    required String code,
+  });
+  
+  /// Restablece la contraseña con el código verificado
+  Future<Either<Failure, void>> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  });
+  
+  /// Cambia la contraseña del usuario autenticado
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }
