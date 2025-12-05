@@ -2,12 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:get_it/get_it.dart';
 import '../auth/auth_manager.dart';
 
 // Auth Feature Pages
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
+
+// Main Feature Page (with Bottom Navigation)
+import '../../features/main/presentation/pages/main_page.dart';
 
 // Projects Feature Pages
 import '../../features/projects/presentation/pages/projects_page.dart';
@@ -22,7 +24,6 @@ import '../../features/workers/presentation/pages/worker_detail_page.dart';
 import '../../features/workers/presentation/pages/worker_assignments_page.dart';
 
 // Profile Feature Pages
-import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 
 /// Configuración de rutas de la aplicación usando GoRouter
@@ -36,6 +37,7 @@ class AppRouter {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
+  static const String main = '/main';
   static const String home = '/home';
   static const String projects = '/projects';
   static const String projectDetail = '/projects/:id';
@@ -72,7 +74,7 @@ class AppRouter {
 
     // Si está en splash, redirigir según estado de login
     if (state.matchedLocation == splash) {
-      return isLoggedIn ? home : login;
+      return isLoggedIn ? main : login;
     }
 
     // Si no está logueado y no está en ruta de auth, ir a login
@@ -80,9 +82,9 @@ class AppRouter {
       return login;
     }
 
-    // Si está logueado y está en ruta de auth, ir a home
+    // Si está logueado y está en ruta de auth, ir a main
     if (isLoggedIn && isAuthRoute && state.matchedLocation != splash) {
-      return home;
+      return main;
     }
 
     return null;
@@ -108,56 +110,45 @@ class AppRouter {
           builder: (context, state) => const RegisterPage(),
         ),
 
-        // Main app routes with bottom navigation
-        ShellRoute(
-          builder: (context, state, child) {
-            return _MainScaffold(child: child);
+        // Main page with bottom navigation (Dashboard, Projects, Calendar, Profile)
+        GoRoute(
+          path: main,
+          name: 'main',
+          builder: (context, state) => const MainPage(),
+        ),
+
+        // Legacy home redirect to main
+        GoRoute(
+          path: home,
+          redirect: (context, state) => main,
+        ),
+
+        // Projects routes (standalone - for deep navigation)
+        GoRoute(
+          path: projects,
+          name: 'projects',
+          builder: (context, state) => const ProjectsPage(),
+        ),
+        GoRoute(
+          path: '/projects/create',
+          name: 'createProject',
+          builder: (context, state) => const CreateProjectPage(),
+        ),
+        GoRoute(
+          path: '/projects/edit',
+          name: 'editProject',
+          builder: (context, state) {
+            final project = state.extra as Project?;
+            return CreateProjectPage(project: project);
           },
-          routes: [
-            GoRoute(
-              path: home,
-              name: 'home',
-              builder: (context, state) => const _HomePlaceholder(),
-            ),
-            GoRoute(
-              path: projects,
-              name: 'projects',
-              builder: (context, state) => const ProjectsPage(),
-              routes: [
-                GoRoute(
-                  path: 'create',
-                  name: 'createProject',
-                  builder: (context, state) => const CreateProjectPage(),
-                ),
-                GoRoute(
-                  path: 'edit',
-                  name: 'editProject',
-                  builder: (context, state) {
-                    final project = state.extra as Project?;
-                    return CreateProjectPage(project: project);
-                  },
-                ),
-                GoRoute(
-                  path: ':id',
-                  name: 'projectDetail',
-                  builder: (context, state) {
-                    final projectId = state.pathParameters['id'] ?? '';
-                    return ProjectDetailPage(projectId: projectId);
-                  },
-                ),
-              ],
-            ),
-            GoRoute(
-              path: calendar,
-              name: 'calendar',
-              builder: (context, state) => const _CalendarPlaceholder(),
-            ),
-            GoRoute(
-              path: profile,
-              name: 'profile',
-              builder: (context, state) => const ProfilePage(),
-            ),
-          ],
+        ),
+        GoRoute(
+          path: '/projects/:id',
+          name: 'projectDetail',
+          builder: (context, state) {
+            final projectId = state.pathParameters['id'] ?? '';
+            return ProjectDetailPage(projectId: projectId);
+          },
         ),
 
         // Workers routes (outside shell)
@@ -254,8 +245,6 @@ class AppRouter {
 }
 
 // ============ PLACEHOLDER WIDGETS ============
-// Login y Register ahora usan páginas reales de features/auth/
-// Los demás serán reemplazados en fases posteriores
 
 class _SplashPlaceholder extends StatelessWidget {
   const _SplashPlaceholder();
@@ -265,125 +254,6 @@ class _SplashPlaceholder extends StatelessWidget {
     return const Scaffold(
       body: Center(
         child: CircularProgressIndicator(),
-      ),
-    );
-  }
-}
-
-class _HomePlaceholder extends StatelessWidget {
-  const _HomePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.home, size: 64, color: Colors.blue),
-          SizedBox(height: 16),
-          Text(
-            'Home',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text('Dashboard - Placeholder'),
-        ],
-      ),
-    );
-  }
-}
-
-class _CalendarPlaceholder extends StatelessWidget {
-  const _CalendarPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.calendar_today, size: 64, color: Colors.blue),
-          SizedBox(height: 16),
-          Text(
-            'Calendario',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text('Calendario de eventos - Placeholder'),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfilePlaceholder extends StatefulWidget {
-  const _ProfilePlaceholder();
-
-  @override
-  State<_ProfilePlaceholder> createState() => _ProfilePlaceholderState();
-}
-
-class _ProfilePlaceholderState extends State<_ProfilePlaceholder> {
-  bool _isLoggingOut = false;
-
-  Future<void> _logout() async {
-    setState(() => _isLoggingOut = true);
-    
-    try {
-      final authManager = GetIt.instance<AuthManager>();
-      await authManager.logout();
-      
-      if (mounted) {
-        context.go(AppRouter.login);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cerrar sesión: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() => _isLoggingOut = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.person, size: 64, color: Colors.blue),
-          const SizedBox(height: 16),
-          const Text(
-            'Perfil',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text('Información del usuario - Placeholder'),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: _isLoggingOut ? null : _logout,
-            icon: _isLoggingOut
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.logout),
-            label: Text(_isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -412,71 +282,5 @@ class _CreateWorkerProfilePlaceholder extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// ============ MAIN SCAFFOLD WITH BOTTOM NAVIGATION ============
-
-class _MainScaffold extends StatelessWidget {
-  final Widget child;
-
-  const _MainScaffold({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _calculateSelectedIndex(context),
-        onTap: (index) => _onItemTapped(index, context),
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.folder),
-            label: 'Proyectos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Calendario',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
-      ),
-    );
-  }
-
-  int _calculateSelectedIndex(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
-    if (location.startsWith(AppRouter.home)) return 0;
-    if (location.startsWith(AppRouter.projects)) return 1;
-    if (location.startsWith(AppRouter.calendar)) return 2;
-    if (location.startsWith(AppRouter.profile)) return 3;
-    return 0;
-  }
-
-  void _onItemTapped(int index, BuildContext context) {
-    switch (index) {
-      case 0:
-        context.go(AppRouter.home);
-        break;
-      case 1:
-        context.go(AppRouter.projects);
-        break;
-      case 2:
-        context.go(AppRouter.calendar);
-        break;
-      case 3:
-        context.go(AppRouter.profile);
-        break;
-    }
   }
 }
