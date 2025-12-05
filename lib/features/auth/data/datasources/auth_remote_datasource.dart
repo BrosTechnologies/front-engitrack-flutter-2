@@ -119,8 +119,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: request.toJson(),
       );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw const AuthException('Código inválido o expirado');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Validar el campo "valid" de la respuesta
+        final data = response.data as Map<String, dynamic>?;
+        final isValid = data?['valid'] as bool? ?? false;
+        
+        if (!isValid) {
+          throw const AuthException('Código inválido o expirado');
+        }
+      } else {
+        throw const AuthException('Error al verificar código');
       }
     } on DioException catch (e) {
       throw _handleDioError(e);

@@ -35,6 +35,78 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
+  void _showSuccessDialog(BuildContext dialogContext) {
+    showDialog(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '¡Contraseña actualizada!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                // Navegar a login y limpiar el stack
+                dialogContext.go(AppRouter.login);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007AFF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: const Text(
+                'Ir a iniciar sesión',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -50,13 +122,12 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           ),
         ),
         body: BlocConsumer<PasswordRecoveryBloc, PasswordRecoveryState>(
-          listener: (context, state) {
+          listener: (blocContext, state) {
             if (state is PasswordResetSuccess) {
-              // Mostrar mensaje de éxito y navegar a login
-              _showSuccessDialog();
+              _showSuccessDialog(blocContext);
             } else if (state is PasswordRecoveryError &&
                        state.currentStep == RecoveryStep.resetPassword) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(blocContext).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
                   backgroundColor: Colors.red.shade400,
@@ -64,7 +135,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               );
             }
           },
-          builder: (context, state) {
+          builder: (blocContext, state) {
             final isLoading = state is ResettingPassword;
 
             return SafeArea(
@@ -250,7 +321,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: isLoading ? null : _submitForm,
+                          onPressed: isLoading 
+                              ? null 
+                              : () => _submitForm(blocContext),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF007AFF),
                             foregroundColor: Colors.white,
@@ -288,83 +361,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     );
   }
 
-  void _submitForm() {
+  void _submitForm(BuildContext blocContext) {
     if (_formKey.currentState?.validate() ?? false) {
-      context.read<PasswordRecoveryBloc>().add(
+      blocContext.read<PasswordRecoveryBloc>().add(
             ResetPasswordSubmit(_passwordController.text),
           );
     }
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 36,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              '¡Contraseña restablecida!',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                // Cerrar diálogo y navegar a login
-                Navigator.of(context).pop();
-                context.go(AppRouter.login);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: const Text(
-                'Iniciar sesión',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

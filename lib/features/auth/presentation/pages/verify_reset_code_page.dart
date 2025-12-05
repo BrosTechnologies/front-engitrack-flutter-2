@@ -42,6 +42,13 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
 
   String get _code => _controllers.map((c) => c.text).join();
 
+  void _clearFields() {
+    for (final controller in _controllers) {
+      controller.clear();
+    }
+    _focusNodes[0].requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -57,28 +64,24 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
           ),
         ),
         body: BlocConsumer<PasswordRecoveryBloc, PasswordRecoveryState>(
-          listener: (context, state) {
+          listener: (blocContext, state) {
             if (state is CodeVerified) {
               // Navegar a pantalla de nueva contraseña
-              context.push(
+              blocContext.push(
                 AppRouter.resetPassword,
-                extra: widget.bloc,
+                extra: blocContext.read<PasswordRecoveryBloc>(),
               );
             } else if (state is PasswordRecoveryError &&
                        state.currentStep == RecoveryStep.verifyCode) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(blocContext).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
                   backgroundColor: Colors.red.shade400,
                 ),
               );
-              // Limpiar campos en caso de error
-              for (final controller in _controllers) {
-                controller.clear();
-              }
-              _focusNodes[0].requestFocus();
+              _clearFields();
             } else if (state is ResetCodeSent) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(blocContext).showSnackBar(
                 const SnackBar(
                   content: Text('Código reenviado exitosamente'),
                   backgroundColor: Colors.green,
@@ -86,7 +89,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
               );
             }
           },
-          builder: (context, state) {
+          builder: (blocContext, state) {
             final isLoading = state is VerifyingCode || state is SendingResetCode;
             final email = state.email;
 
@@ -164,8 +167,8 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: List.generate(6, (index) {
                         return SizedBox(
-                          width: 48,
-                          height: 56,
+                          width: 45,
+                          height: 55,
                           child: TextFormField(
                             controller: _controllers[index],
                             focusNode: _focusNodes[index],
@@ -174,20 +177,27 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                             textAlign: TextAlign.center,
                             maxLength: 1,
                             style: const TextStyle(
-                              fontSize: 24,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                             decoration: InputDecoration(
                               counterText: '',
                               filled: true,
-                              fillColor: Colors.grey.shade50,
+                              fillColor: Colors.grey.shade100,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -206,7 +216,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                               }
                               // Auto-submit cuando todos los campos están llenos
                               if (_code.length == 6) {
-                                _submitCode();
+                                _submitCode(blocContext);
                               }
                             },
                           ),
@@ -221,7 +231,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : _submitCode,
+                        onPressed: isLoading ? null : () => _submitCode(blocContext),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF007AFF),
                           foregroundColor: Colors.white,
@@ -256,7 +266,7 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
                       child: TextButton(
                         onPressed: isLoading
                             ? null
-                            : () => context.read<PasswordRecoveryBloc>().add(
+                            : () => blocContext.read<PasswordRecoveryBloc>().add(
                                   const ResendCode(),
                                 ),
                         child: Text(
@@ -280,11 +290,11 @@ class _VerifyResetCodePageState extends State<VerifyResetCodePage> {
     );
   }
 
-  void _submitCode() {
+  void _submitCode(BuildContext blocContext) {
     if (_code.length == 6) {
-      context.read<PasswordRecoveryBloc>().add(VerifyCode(_code));
+      blocContext.read<PasswordRecoveryBloc>().add(VerifyCode(_code));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(blocContext).showSnackBar(
         const SnackBar(
           content: Text('Por favor ingresa el código completo'),
           backgroundColor: Colors.orange,
