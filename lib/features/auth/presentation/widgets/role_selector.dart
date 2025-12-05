@@ -87,6 +87,7 @@ class RoleSelector extends StatelessWidget {
             child: DropdownButtonFormField<String>(
               initialValue: selectedRole?.isNotEmpty == true ? selectedRole : null,
               onChanged: enabled ? onChanged : null,
+              itemHeight: 60, // Altura suficiente para título + descripción en el menú
               decoration: const InputDecoration(
                 prefixIcon: Icon(
                   Icons.work_outline,
@@ -113,6 +114,30 @@ class RoleSelector extends StatelessWidget {
               isExpanded: true,
               dropdownColor: Colors.white,
               borderRadius: BorderRadius.circular(12),
+              // Widget mostrado cuando hay un valor seleccionado (solo nombre)
+              selectedItemBuilder: (BuildContext context) {
+                return roles.map((role) {
+                  return Row(
+                    children: [
+                      Icon(
+                        role.icon,
+                        size: 20,
+                        color: const Color(0xFF007AFF),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        role.displayName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList();
+              },
+              // Items en el menú desplegable (con descripción)
               items: roles.map((role) {
                 return DropdownMenuItem<String>(
                   value: role.value,
@@ -124,27 +149,32 @@ class RoleSelector extends StatelessWidget {
                         color: const Color(0xFF007AFF),
                       ),
                       const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            role.displayName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF1F2937),
-                            ),
-                          ),
-                          if (role.description.isNotEmpty)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
                             Text(
-                              role.description,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade500,
+                              role.displayName,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF1F2937),
                               ),
                             ),
-                        ],
+                            if (role.description.isNotEmpty)
+                              Text(
+                                role.description,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
