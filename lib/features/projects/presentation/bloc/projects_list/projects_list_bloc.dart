@@ -32,7 +32,11 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
   ) async {
     emit(const ProjectsListLoading());
 
-    final result = await _projectRepository.getProjects();
+    // Pedimos todos los proyectos (pageSize grande) para paginación local
+    final result = await _projectRepository.getProjects(
+      page: 1,
+      pageSize: 1000,
+    );
 
     result.fold(
       (failure) => emit(ProjectsListError(failure.message)),
@@ -55,7 +59,11 @@ class ProjectsListBloc extends Bloc<ProjectsListEvent, ProjectsListState> {
     // Mantener el estado actual mientras se refresca
     final currentState = state;
 
-    final result = await _projectRepository.getProjects();
+    // Pedimos todos los proyectos para paginación local
+    final result = await _projectRepository.getProjects(
+      page: 1,
+      pageSize: 1000,
+    );
 
     result.fold(
       (failure) {

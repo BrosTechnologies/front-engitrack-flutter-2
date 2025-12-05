@@ -351,8 +351,38 @@ class _ProjectsPageContentState extends State<_ProjectsPageContent> {
   }
 
   Widget _buildProjectsList(ProjectsListLoaded state) {
+    final startItem = ((state.currentPage - 1) * state.itemsPerPage) + 1;
+    final endItem = (startItem + state.displayProjects.length - 1).clamp(1, state.totalFilteredProjects);
+    
     return Column(
       children: [
+        // Indicador de resultados
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: Colors.white,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Mostrando $startItem-$endItem de ${state.totalFilteredProjects} proyectos',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              if (state.totalPages > 1)
+                Text(
+                  'Página ${state.currentPage} de ${state.totalPages}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        
         // Lista de proyectos
         Expanded(
           child: RefreshIndicator(
